@@ -3,43 +3,69 @@ import "./App.css";
 import ChartView from "./components/Chart";
 import SymbolPicker, { useSymbolCatalog } from "./components/SymbolPicker";
 import { useCandleStream } from "./hooks/useCandleStream";
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  saveSettings,
+  VALID_INTERVALS,
+} from "./lib/settings";
 import { setStream } from "./lib/tauriBridge";
 import type { SymbolInfo } from "./lib/types";
 
-const DEFAULT_SYMBOL = "BTCUSDT";
-const INTERVALS = [
-  "1m",
-  "5m",
-  "15m",
-  "30m",
-  "1h",
-  "4h",
-  "1d",
-  "1w",
-] as const;
-
 function App() {
-  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
-  const [timeframe, setTimeframe] = useState<string>("1m");
+  const [symbol, setSymbol] = useState(DEFAULT_SETTINGS.symbol);
+  const [timeframe, setTimeframe] = useState(DEFAULT_SETTINGS.timeframe);
   const [pricePrecision, setPricePrecision] = useState(2);
   const [volumePrecision, setVolumePrecision] = useState(3);
+  const [hydrated, setHydrated] = useState(false);
   const { symbols, loading } = useSymbolCatalog();
   const stream = useCandleStream(symbol, timeframe);
 
   useEffect(() => {
+    let cancelled = false;
+    loadSettings().then((s) => {
+      if (cancelled) return;
+      setSymbol(s.symbol);
+      setTimeframe(s.timeframe);
+      setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     setStream(symbol, timeframe).catch((e) =>
       console.error("set_stream failed", e),
     );
-  }, [symbol, timeframe]);
+  }, [hydrated, symbol, timeframe]);
 
-  // Sync precision when catalog arrives / symbol matches
   useEffect(() => {
+    if (!hydrated) return;
+    saveSettings({ symbol, timeframe });
+  }, [hydrated, symbol, timeframe]);
+
+  // Sync precision + delist fallback when catalog arrives
+  useEffect(() => {
+    if (!hydrated || symbols.length === 0) return;
     const info = symbols.find((s) => s.ticker === symbol);
     if (info) {
       setPricePrecision(info.price_precision);
       setVolumePrecision(info.volume_precision);
+      return;
     }
-  }, [symbols, symbol]);
+    // Saved pair no longer TRADING
+    const fallback =
+      symbols.find((s) => s.ticker === DEFAULT_SETTINGS.symbol) ?? null;
+    if (fallback && symbol !== fallback.ticker) {
+      setSymbol(fallback.ticker);
+      setPricePrecision(fallback.price_precision);
+      setVolumePrecision(fallback.volume_precision);
+    } else if (!fallback && symbol !== DEFAULT_SETTINGS.symbol) {
+      setSymbol(DEFAULT_SETTINGS.symbol);
+    }
+  }, [hydrated, symbols, symbol]);
 
   const activeInfo = useMemo(
     () => symbols.find((s) => s.ticker === symbol),
@@ -69,7 +95,7 @@ function App() {
             </span>
           )}
           <div className="intervals" role="group" aria-label="Interval">
-            {INTERVALS.map((tf) => (
+            {VALID_INTERVALS.map((tf) => (
               <button
                 key={tf}
                 type="button"
@@ -85,13 +111,15 @@ function App() {
         </div>
       </header>
       <main className="chart-area">
-        <ChartView
-          symbol={symbol}
-          timeframe={timeframe}
-          pricePrecision={pricePrecision}
-          volumePrecision={volumePrecision}
-          stream={stream}
-        />
+        {hydrated ? (
+          <ChartView
+            symbol={symbol}
+            timeframe={timeframe}
+            pricePrecision={pricePrecision}
+            volumePrecision={volumePrecision}
+            stream={stream}
+          />
+        ) : null}
       </main>
     </div>
   );

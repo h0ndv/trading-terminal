@@ -30,12 +30,13 @@ bun run tauri build
 - **Live**: WebSocket `{symbol}@kline_{interval}` → Tauri event `candle-update` → chart `subscribeBar`.
 - **Catalog**: `list_symbols` → `GET /api/v3/exchangeInfo` (TRADING pairs, cached in-process).
 - **Symbol / interval**: header typeahead + TF buttons call `set_stream`; Rust reconnects WS via a `watch` channel.
+- **Persistence**: last symbol/TF restored on launch via `@tauri-apps/plugin-store` (`settings.json` in the app data dir).
 
 The kline WS alone cannot fill the chart; REST + WS is the standard terminal pattern.
 
 ## Symbol / timeframe
 
-- **Symbol**: searchable picker (default `BTCUSDT`); any spot TRADING pair from exchangeInfo.
+- **Symbol**: searchable picker (default `BTCUSDT`); any spot TRADING pair from exchangeInfo. Last choice is restored on restart.
 - **Intervals**: `1m`, `5m`, `15m`, `30m`, `1h`, `4h`, `1d`, `1w`. Changing symbol or TF reloads REST history and resubscribes the live stream.
 
 Exchange logic lives under `src-tauri/src/data/binance/`.
