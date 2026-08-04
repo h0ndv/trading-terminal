@@ -39,6 +39,8 @@ function toPeriod(timeframe: string): Period {
   }
 }
 
+const KLINES_PAGE_LIMIT = 1000;
+
 function candleToBar(c: Candle): KLineData {
   return {
     timestamp: c.timestamp,
@@ -72,13 +74,25 @@ export default function ChartView({
     chartRef.current = chart;
 
     chart.setDataLoader({
-      getBars: async ({ callback }) => {
+      getBars: async ({ type, timestamp, callback }) => {
+        // Right edge is live via subscribeBar; no REST backward pages.
+        if (type === "backward" || type === "update") {
+          callback([], { forward: true, backward: false });
+          return;
+        }
         try {
-          const bars = await streamRef.current.getBars(symbol, timeframe);
-          callback(bars.map(candleToBar));
+          const endTime =
+            type === "forward" && timestamp != null ? timestamp - 1 : undefined;
+          const bars = await streamRef.current.getBars(symbol, timeframe, {
+            endTime,
+          });
+          callback(bars.map(candleToBar), {
+            forward: bars.length >= KLINES_PAGE_LIMIT,
+            backward: false,
+          });
         } catch (e) {
           console.error("getBars failed", e);
-          callback([]);
+          callback([], { forward: false, backward: false });
         }
       },
       subscribeBar: ({ callback }) => {

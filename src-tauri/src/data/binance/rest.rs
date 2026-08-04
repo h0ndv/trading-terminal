@@ -10,13 +10,30 @@ const EXCHANGE_INFO_URL: &str = "https://api.binance.com/api/v3/exchangeInfo";
 // process-lifetime cache; upgrade to TTL/disk if exchangeInfo churn matters
 static SYMBOLS_CACHE: Mutex<Option<Vec<SymbolInfo>>> = Mutex::new(None);
 
-/// Fetch recent klines from Binance spot REST.
-pub async fn fetch_klines(symbol: &str, interval: &str, limit: u16) -> Result<Vec<Candle>> {
-    let limit = limit.clamp(1, 1000);
-    let symbol = symbol.to_uppercase();
-    let url = format!("{KLINES_URL}?symbol={symbol}&interval={interval}&limit={limit}");
+const KLINES_PAGE_LIMIT: u16 = 1000;
 
-    tracing::info!(%symbol, %interval, limit, "fetching binance klines");
+/// Build Binance klines URL. `end_time` is open-time ms (inclusive upper bound).
+pub fn klines_url(symbol: &str, interval: &str, limit: u16, end_time: Option<i64>) -> String {
+    let limit = limit.clamp(1, KLINES_PAGE_LIMIT);
+    let symbol = symbol.to_uppercase();
+    let mut url = format!("{KLINES_URL}?symbol={symbol}&interval={interval}&limit={limit}");
+    if let Some(t) = end_time {
+        url.push_str(&format!("&endTime={t}"));
+    }
+    url
+}
+
+/// Fetch klines from Binance spot REST. Optional `end_time` pages older history.
+pub async fn fetch_klines(
+    symbol: &str,
+    interval: &str,
+    limit: u16,
+    end_time: Option<i64>,
+) -> Result<Vec<Candle>> {
+    let url = klines_url(symbol, interval, limit, end_time);
+    let symbol = symbol.to_uppercase();
+
+    tracing::info!(%symbol, %interval, limit, ?end_time, "fetching binance klines");
 
     let client = reqwest::Client::new();
     let rows: Vec<Value> = client
@@ -38,7 +55,7 @@ pub async fn fetch_klines(symbol: &str, interval: &str, limit: u16) -> Result<Ve
         }
     }
 
-    if candles.is_empty() {
+    if candles.is_empty() && end_time.is_none() {
         return Err(anyhow!("no klines returned for {symbol} {interval}"));
     }
 
@@ -228,6 +245,32 @@ pub fn parse_kline_row(row: &Value) -> Result<Candle> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn klines_url_without_end_time() {
+        let url = klines_url("btcusdt", "1h", 1000, None);
+        assert_eq!(
+            url,
+            "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=1000"
+        );
+    }
+
+    #[test]
+    fn klines_url_with_end_time() {
+        let url = klines_url("ethusdt", "15m", 500, Some(1_700_000_000_000));
+        assert_eq!(
+            url,
+            "https://api.binance.com/api/v3/klines?symbol=ETHUSDT&interval=15m&limit=500&endTime=1700000000000"
+        );
+    }
+
+    #[test]
+    fn klines_url_clamps_limit() {
+        let url = klines_url("BTCUSDT", "1m", 0, None);
+        assert!(url.contains("limit=1"));
+        let url = klines_url("BTCUSDT", "1m", 9999, None);
+        assert!(url.contains("limit=1000"));
+    }
 
     #[test]
     fn parses_kline_row() {

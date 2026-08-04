@@ -26,7 +26,7 @@ bun run tauri build
 
 ## Market data (Binance)
 
-- **History**: REST `GET /api/v3/klines` via `get_historical` (up to 500 bars).
+- **History**: REST `GET /api/v3/klines` via `get_historical` (pages of up to 1000 bars; scroll-back loads older via `endTime`).
 - **Live**: WebSocket `{symbol}@kline_{interval}` → Tauri event `candle-update` → chart `subscribeBar`.
 - **Catalog**: `list_symbols` → `GET /api/v3/exchangeInfo` (TRADING pairs, cached in-process).
 - **Symbol / interval**: header typeahead + TF buttons call `set_stream`; Rust reconnects WS via a `watch` channel.

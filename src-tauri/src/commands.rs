@@ -4,10 +4,14 @@ use tauri::State;
 use tokio::sync::watch;
 
 #[tauri::command]
-pub async fn get_historical(symbol: String, timeframe: String) -> Result<Vec<Candle>, String> {
+pub async fn get_historical(
+    symbol: String,
+    timeframe: String,
+    end_time: Option<i64>,
+) -> Result<Vec<Candle>, String> {
     let interval = binance::to_interval(&timeframe).to_string();
-    tracing::info!(%symbol, %timeframe, %interval, "get_historical");
-    binance::fetch_klines(&symbol, &interval, 500)
+    tracing::info!(%symbol, %timeframe, %interval, ?end_time, "get_historical");
+    binance::fetch_klines(&symbol, &interval, 1000, end_time)
         .await
         .map_err(|e| {
             tracing::error!(error = %e, "get_historical failed");

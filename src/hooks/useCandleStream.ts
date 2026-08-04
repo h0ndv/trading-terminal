@@ -2,8 +2,16 @@ import { useEffect, useRef } from "react";
 import { getHistorical, onCandleUpdate } from "../lib/tauriBridge";
 import type { Candle } from "../lib/types";
 
+export type GetBarsOpts = {
+  endTime?: number;
+};
+
 export type CandleHandlers = {
-  getBars: (symbol: string, timeframe: string) => Promise<Candle[]>;
+  getBars: (
+    symbol: string,
+    timeframe: string,
+    opts?: GetBarsOpts,
+  ) => Promise<Candle[]>;
   onCandle: (cb: (candle: Candle) => void) => () => void;
 };
 
@@ -38,7 +46,7 @@ export function useCandleStream(
   }, []);
 
   return {
-    getBars: (sym, tf) => getHistorical(sym, tf),
+    getBars: (sym, tf, opts) => getHistorical(sym, tf, opts?.endTime),
     onCandle: (cb) => {
       listenersRef.current.add(cb);
       return () => {

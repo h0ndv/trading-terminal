@@ -5,8 +5,9 @@ import type { Candle, SymbolInfo } from "./types";
 export function getHistorical(
   symbol: string,
   timeframe: string,
+  endTime?: number,
 ): Promise<Candle[]> {
-  return invoke<Candle[]>("get_historical", { symbol, timeframe });
+  return invoke<Candle[]>("get_historical", { symbol, timeframe, endTime });
 }
 
 export function listSymbols(): Promise<SymbolInfo[]> {
