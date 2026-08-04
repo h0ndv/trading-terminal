@@ -4,6 +4,7 @@ import {
   dispose,
   type Chart,
   type KLineData,
+  type Period,
 } from "klinecharts";
 import type { CandleHandlers } from "../hooks/useCandleStream";
 import type { Candle } from "../lib/types";
@@ -13,6 +14,28 @@ type Props = {
   timeframe: string;
   stream: CandleHandlers;
 };
+
+function toPeriod(timeframe: string): Period {
+  switch (timeframe) {
+    case "5m":
+      return { span: 5, type: "minute" };
+    case "15m":
+      return { span: 15, type: "minute" };
+    case "30m":
+      return { span: 30, type: "minute" };
+    case "1h":
+      return { span: 1, type: "hour" };
+    case "4h":
+      return { span: 4, type: "hour" };
+    case "1d":
+      return { span: 1, type: "day" };
+    case "1w":
+      return { span: 1, type: "week" };
+    case "1m":
+    default:
+      return { span: 1, type: "minute" };
+  }
+}
 
 function candleToBar(c: Candle): KLineData {
   return {
@@ -63,9 +86,8 @@ export default function ChartView({ symbol, timeframe, stream }: Props) {
       pricePrecision: 2,
       volumePrecision: 3,
     });
-    chart.setPeriod({ span: 1, type: "minute" });
+    chart.setPeriod(toPeriod(timeframe));
 
-    // Built-in indicators (MA = simple MA in klinecharts; SMA is a different formula)
     chart.createIndicator(
       { name: "MA", calcParams: [20], paneId: "candle_pane" },
       true,
@@ -93,5 +115,11 @@ export default function ChartView({ symbol, timeframe, stream }: Props) {
     };
   }, [symbol, timeframe]);
 
-  return <div ref={containerRef} className="chart-root" style={{ width: "100%", height: "100%" }} />;
+  return (
+    <div
+      ref={containerRef}
+      className="chart-root"
+      style={{ width: "100%", height: "100%" }}
+    />
+  );
 }

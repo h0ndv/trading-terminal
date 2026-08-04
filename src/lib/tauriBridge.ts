@@ -9,6 +9,10 @@ export function getHistorical(
   return invoke<Candle[]>("get_historical", { symbol, timeframe });
 }
 
+export function setStream(symbol: string, timeframe: string): Promise<void> {
+  return invoke("set_stream", { symbol, timeframe });
+}
+
 export function onCandleUpdate(
   handler: (candle: Candle) => void,
 ): Promise<UnlistenFn> {

@@ -4,9 +4,9 @@ mod data;
 mod events;
 mod indicators;
 
-use data::binance;
+use data::binance::{self, StreamConfig};
 use events::emit_candle;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use tracing_subscriber::EnvFilter;
 
 const DEFAULT_SYMBOL: &str = "BTCUSDT";
@@ -20,17 +20,22 @@ pub fn run() {
         )
         .init();
 
+    let initial = StreamConfig::new(DEFAULT_SYMBOL, DEFAULT_INTERVAL);
+    let (config_tx, config_rx) = watch::channel(initial);
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![commands::get_historical])
+        .manage(config_tx)
+        .invoke_handler(tauri::generate_handler![
+            commands::get_historical,
+            commands::set_stream
+        ])
         .setup(|app| {
             let handle = app.handle().clone();
             let (tx, mut rx) = mpsc::channel(256);
 
-            let symbol = DEFAULT_SYMBOL.to_string();
-            let interval = DEFAULT_INTERVAL.to_string();
             tauri::async_runtime::spawn(async move {
-                binance::run_stream(&symbol, &interval, tx).await;
+                binance::run_stream(config_rx, tx).await;
             });
 
             tauri::async_runtime::spawn(async move {

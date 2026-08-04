@@ -55,7 +55,7 @@ body,
 
 .meta {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
 }
 
@@ -64,9 +64,45 @@ body,
   color: #58a6ff;
 }
 
-.timeframe {
+.intervals {
+  display: flex;
+  gap: 2px;
+}
+
+.interval-btn {
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid #30363d;
+  background: transparent;
   color: #8b949e;
+  font: inherit;
   font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.interval-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.interval-btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.interval-btn + .interval-btn {
+  border-left: none;
+}
+
+.interval-btn:hover {
+  color: #e8eaed;
+  background: #21262d;
+}
+
+.interval-btn.active {
+  color: #f0f6fc;
+  background: #21262d;
+  border-color: #58a6ff;
+  z-index: 1;
 }
 
 .chart-area {
