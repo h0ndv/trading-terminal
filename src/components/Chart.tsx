@@ -7,6 +7,12 @@ import {
   type Period,
 } from "klinecharts";
 import type { CandleHandlers } from "../hooks/useCandleStream";
+import {
+  INDICATOR_META,
+  calcParamsEqual,
+  type BuiltinIndicatorId,
+  type IndicatorConfig,
+} from "../lib/indicators";
 import type { Candle } from "../lib/types";
 
 type Props = {
@@ -15,7 +21,19 @@ type Props = {
   pricePrecision: number;
   volumePrecision: number;
   stream: CandleHandlers;
+  indicators: IndicatorConfig[];
 };
+
+type Applied = {
+  calcParams: number[];
+};
+
+function enabledOrderKey(configs: IndicatorConfig[]): string {
+  return configs
+    .filter((c) => c.enabled)
+    .map((c) => c.id)
+    .join(",");
+}
 
 function toPeriod(timeframe: string): Period {
   switch (timeframe) {
@@ -52,16 +70,75 @@ function candleToBar(c: Candle): KLineData {
   };
 }
 
+/** Sync built-in indicators to chart in config array order; mutates `applied`. */
+function syncIndicators(
+  chart: Chart,
+  configs: IndicatorConfig[],
+  applied: Map<BuiltinIndicatorId, Applied>,
+  lastOrderKey: { current: string },
+) {
+  const nextKey = enabledOrderKey(configs);
+  const orderChanged =
+    lastOrderKey.current !== "" &&
+    lastOrderKey.current !== nextKey &&
+    applied.size > 0;
+
+  if (orderChanged) {
+    for (const id of [...applied.keys()]) {
+      chart.removeIndicator({ name: id });
+      applied.delete(id);
+    }
+  }
+  lastOrderKey.current = nextKey;
+
+  // Disable / remove first for ids no longer enabled
+  for (const id of [...applied.keys()]) {
+    const cfg = configs.find((c) => c.id === id);
+    if (!cfg?.enabled) {
+      chart.removeIndicator({ name: id });
+      applied.delete(id);
+    }
+  }
+
+  // Create / override in array order
+  for (const cfg of configs) {
+    if (!cfg.enabled) continue;
+    const meta = INDICATOR_META[cfg.id];
+    const prev = applied.get(cfg.id);
+
+    if (!prev) {
+      chart.createIndicator(
+        {
+          name: cfg.id,
+          calcParams: cfg.calcParams,
+          paneId: meta.paneId,
+        },
+        meta.stackOnCandle,
+      );
+      applied.set(cfg.id, { calcParams: [...cfg.calcParams] });
+    } else if (!calcParamsEqual(prev.calcParams, cfg.calcParams)) {
+      chart.overrideIndicator({
+        name: cfg.id,
+        calcParams: cfg.calcParams,
+      });
+      applied.set(cfg.id, { calcParams: [...cfg.calcParams] });
+    }
+  }
+}
+
 export default function ChartView({
   symbol,
   timeframe,
   pricePrecision,
   volumePrecision,
   stream,
+  indicators,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const pushBarRef = useRef<((data: KLineData) => void) | null>(null);
+  const appliedRef = useRef(new Map<BuiltinIndicatorId, Applied>());
+  const orderKeyRef = useRef("");
   const streamRef = useRef(stream);
   streamRef.current = stream;
 
@@ -72,6 +149,8 @@ export default function ChartView({
     const chart = init(el, { styles: "dark" });
     if (!chart) return;
     chartRef.current = chart;
+    appliedRef.current = new Map();
+    orderKeyRef.current = "";
 
     chart.setDataLoader({
       getBars: async ({ type, timestamp, callback }) => {
@@ -110,17 +189,6 @@ export default function ChartView({
     });
     chart.setPeriod(toPeriod(timeframe));
 
-    chart.createIndicator(
-      { name: "MA", calcParams: [20], paneId: "candle_pane" },
-      true,
-    );
-    chart.createIndicator({ name: "VOL", paneId: "pane_vol" });
-    chart.createIndicator({
-      name: "RSI",
-      calcParams: [14],
-      paneId: "pane_rsi",
-    });
-
     const offCandle = streamRef.current.onCandle((candle) => {
       pushBarRef.current?.(candleToBar(candle));
     });
@@ -132,10 +200,18 @@ export default function ChartView({
       offCandle();
       window.removeEventListener("resize", onResize);
       pushBarRef.current = null;
+      appliedRef.current = new Map();
+      orderKeyRef.current = "";
       dispose(chart);
       chartRef.current = null;
     };
   }, [symbol, timeframe, pricePrecision, volumePrecision]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    syncIndicators(chart, indicators, appliedRef.current, orderKeyRef);
+  }, [indicators, symbol, timeframe, pricePrecision, volumePrecision]);
 
   return (
     <div

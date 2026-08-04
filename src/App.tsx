@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import ChartView from "./components/Chart";
+import IndicatorPanel from "./components/IndicatorPanel";
 import SymbolPicker, { useSymbolCatalog } from "./components/SymbolPicker";
 import { useCandleStream } from "./hooks/useCandleStream";
+import type { IndicatorConfig } from "./lib/indicators";
 import {
   DEFAULT_SETTINGS,
   loadSettings,
@@ -15,6 +17,13 @@ import type { SymbolInfo } from "./lib/types";
 function App() {
   const [symbol, setSymbol] = useState(DEFAULT_SETTINGS.symbol);
   const [timeframe, setTimeframe] = useState(DEFAULT_SETTINGS.timeframe);
+  const [indicators, setIndicators] = useState<IndicatorConfig[]>(
+    () =>
+      DEFAULT_SETTINGS.indicators.map((d) => ({
+        ...d,
+        calcParams: [...d.calcParams],
+      })),
+  );
   const [pricePrecision, setPricePrecision] = useState(2);
   const [volumePrecision, setVolumePrecision] = useState(3);
   const [hydrated, setHydrated] = useState(false);
@@ -27,6 +36,7 @@ function App() {
       if (cancelled) return;
       setSymbol(s.symbol);
       setTimeframe(s.timeframe);
+      setIndicators(s.indicators);
       setHydrated(true);
     });
     return () => {
@@ -43,8 +53,8 @@ function App() {
 
   useEffect(() => {
     if (!hydrated) return;
-    saveSettings({ symbol, timeframe });
-  }, [hydrated, symbol, timeframe]);
+    saveSettings({ symbol, timeframe, indicators });
+  }, [hydrated, symbol, timeframe, indicators]);
 
   // Sync precision + delist fallback when catalog arrives
   useEffect(() => {
@@ -108,6 +118,7 @@ function App() {
               </button>
             ))}
           </div>
+          <IndicatorPanel value={indicators} onChange={setIndicators} />
         </div>
       </header>
       <main className="chart-area">
@@ -118,6 +129,7 @@ function App() {
             pricePrecision={pricePrecision}
             volumePrecision={volumePrecision}
             stream={stream}
+            indicators={indicators}
           />
         ) : null}
       </main>

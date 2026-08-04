@@ -186,6 +186,177 @@ body,
   z-index: 1;
 }
 
+.indicator-panel {
+  position: relative;
+}
+
+.indicator-toggle {
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  background: transparent;
+  color: #8b949e;
+  font: inherit;
+  cursor: pointer;
+}
+
+.indicator-toggle:hover {
+  color: #e8eaed;
+  background: #21262d;
+}
+
+.indicator-toggle.active {
+  color: #f0f6fc;
+  background: #21262d;
+  border-color: #58a6ff;
+}
+
+.indicator-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  width: 340px;
+  max-height: min(420px, 70vh);
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.indicator-tabs {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #21262d;
+  padding-bottom: 6px;
+}
+
+.indicator-tab {
+  margin: 0;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #8b949e;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.indicator-tab:hover {
+  color: #e8eaed;
+  background: #21262d;
+}
+
+.indicator-tab.active {
+  color: #f0f6fc;
+  background: #21262d;
+}
+
+.indicator-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+.indicator-empty {
+  padding: 12px 8px;
+  color: #8b949e;
+  font-size: 0.9em;
+}
+
+.indicator-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px;
+  border-radius: 4px;
+}
+
+.indicator-row:hover {
+  background: #21262d;
+}
+
+.indicator-row.dragging {
+  opacity: 0.45;
+}
+
+.indicator-drag {
+  margin: 0;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  font: inherit;
+  font-size: 0.75em;
+  letter-spacing: -1px;
+  line-height: 1;
+  cursor: grab;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+
+.indicator-drag:active {
+  cursor: grabbing;
+}
+
+.indicator-enable {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #e8eaed;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 72px;
+  flex-shrink: 0;
+}
+
+.indicator-enable input {
+  accent-color: #58a6ff;
+}
+
+.indicator-params {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.indicator-params-label {
+  color: #8b949e;
+  font-size: 0.8em;
+}
+
+.indicator-period {
+  width: 96px;
+  margin: 0;
+  padding: 4px 6px;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  background: #0d1117;
+  color: #e8eaed;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.indicator-period:focus {
+  outline: none;
+  border-color: #58a6ff;
+}
+
+.indicator-period:disabled {
+  opacity: 0.45;
+}
+
 .chart-area {
   flex: 1;
   min-height: 0;
