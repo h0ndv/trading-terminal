@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import ChartView from "./components/Chart";
+import SymbolPicker, { useSymbolCatalog } from "./components/SymbolPicker";
 import { useCandleStream } from "./hooks/useCandleStream";
 import { setStream } from "./lib/tauriBridge";
+import type { SymbolInfo } from "./lib/types";
 
-const SYMBOL = "BTCUSDT";
-// Binance spot intervals
+const DEFAULT_SYMBOL = "BTCUSDT";
 const INTERVALS = [
   "1m",
   "5m",
@@ -18,21 +19,55 @@ const INTERVALS = [
 ] as const;
 
 function App() {
+  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
   const [timeframe, setTimeframe] = useState<string>("1m");
-  const stream = useCandleStream(SYMBOL, timeframe);
+  const [pricePrecision, setPricePrecision] = useState(2);
+  const [volumePrecision, setVolumePrecision] = useState(3);
+  const { symbols, loading } = useSymbolCatalog();
+  const stream = useCandleStream(symbol, timeframe);
 
   useEffect(() => {
-    setStream(SYMBOL, timeframe).catch((e) =>
+    setStream(symbol, timeframe).catch((e) =>
       console.error("set_stream failed", e),
     );
-  }, [timeframe]);
+  }, [symbol, timeframe]);
+
+  // Sync precision when catalog arrives / symbol matches
+  useEffect(() => {
+    const info = symbols.find((s) => s.ticker === symbol);
+    if (info) {
+      setPricePrecision(info.price_precision);
+      setVolumePrecision(info.volume_precision);
+    }
+  }, [symbols, symbol]);
+
+  const activeInfo = useMemo(
+    () => symbols.find((s) => s.ticker === symbol),
+    [symbols, symbol],
+  );
+
+  function onSelectSymbol(info: SymbolInfo) {
+    setSymbol(info.ticker);
+    setPricePrecision(info.price_precision);
+    setVolumePrecision(info.volume_precision);
+  }
 
   return (
     <div className="app">
       <header className="header">
         <h1 className="title">Trading Terminal</h1>
         <div className="meta">
-          <span className="symbol">{SYMBOL}</span>
+          <SymbolPicker
+            value={symbol}
+            onSelect={onSelectSymbol}
+            symbols={symbols}
+            loading={loading}
+          />
+          {activeInfo && (
+            <span className="symbol-hint">
+              {activeInfo.base}/{activeInfo.quote}
+            </span>
+          )}
           <div className="intervals" role="group" aria-label="Interval">
             {INTERVALS.map((tf) => (
               <button
@@ -50,7 +85,13 @@ function App() {
         </div>
       </header>
       <main className="chart-area">
-        <ChartView symbol={SYMBOL} timeframe={timeframe} stream={stream} />
+        <ChartView
+          symbol={symbol}
+          timeframe={timeframe}
+          pricePrecision={pricePrecision}
+          volumePrecision={volumePrecision}
+          stream={stream}
+        />
       </main>
     </div>
   );

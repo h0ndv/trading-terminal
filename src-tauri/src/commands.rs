@@ -1,4 +1,4 @@
-use crate::core::model::Candle;
+use crate::core::model::{Candle, SymbolInfo};
 use crate::data::binance::{self, StreamConfig};
 use tauri::State;
 use tokio::sync::watch;
@@ -13,6 +13,15 @@ pub async fn get_historical(symbol: String, timeframe: String) -> Result<Vec<Can
             tracing::error!(error = %e, "get_historical failed");
             e.to_string()
         })
+}
+
+#[tauri::command]
+pub async fn list_symbols() -> Result<Vec<SymbolInfo>, String> {
+    tracing::info!("list_symbols");
+    binance::fetch_symbols().await.map_err(|e| {
+        tracing::error!(error = %e, "list_symbols failed");
+        e.to_string()
+    })
 }
 
 #[tauri::command]

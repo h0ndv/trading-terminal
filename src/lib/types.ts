@@ -6,3 +6,11 @@ export interface Candle {
   close: number;
   volume: number;
 }
+
+export interface SymbolInfo {
+  ticker: string;
+  base: string;
+  quote: string;
+  price_precision: number;
+  volume_precision: number;
+}

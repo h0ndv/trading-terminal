@@ -12,6 +12,8 @@ import type { Candle } from "../lib/types";
 type Props = {
   symbol: string;
   timeframe: string;
+  pricePrecision: number;
+  volumePrecision: number;
   stream: CandleHandlers;
 };
 
@@ -48,7 +50,13 @@ function candleToBar(c: Candle): KLineData {
   };
 }
 
-export default function ChartView({ symbol, timeframe, stream }: Props) {
+export default function ChartView({
+  symbol,
+  timeframe,
+  pricePrecision,
+  volumePrecision,
+  stream,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const pushBarRef = useRef<((data: KLineData) => void) | null>(null);
@@ -83,8 +91,8 @@ export default function ChartView({ symbol, timeframe, stream }: Props) {
 
     chart.setSymbol({
       ticker: symbol,
-      pricePrecision: 2,
-      volumePrecision: 3,
+      pricePrecision,
+      volumePrecision,
     });
     chart.setPeriod(toPeriod(timeframe));
 
@@ -113,7 +121,7 @@ export default function ChartView({ symbol, timeframe, stream }: Props) {
       dispose(chart);
       chartRef.current = null;
     };
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, pricePrecision, volumePrecision]);
 
   return (
     <div

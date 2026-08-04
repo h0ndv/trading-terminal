@@ -28,6 +28,7 @@ pub fn run() {
         .manage(config_tx)
         .invoke_handler(tauri::generate_handler![
             commands::get_historical,
+            commands::list_symbols,
             commands::set_stream
         ])
         .setup(|app| {

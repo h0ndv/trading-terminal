@@ -1,16 +1,20 @@
-use crate::core::model::Candle;
+use crate::core::model::{Candle, SymbolInfo};
 use anyhow::{anyhow, Context, Result};
 use serde_json::Value;
+use std::sync::Mutex;
+use std::time::Instant;
 
 const KLINES_URL: &str = "https://api.binance.com/api/v3/klines";
+const EXCHANGE_INFO_URL: &str = "https://api.binance.com/api/v3/exchangeInfo";
+
+// process-lifetime cache; upgrade to TTL/disk if exchangeInfo churn matters
+static SYMBOLS_CACHE: Mutex<Option<Vec<SymbolInfo>>> = Mutex::new(None);
 
 /// Fetch recent klines from Binance spot REST.
 pub async fn fetch_klines(symbol: &str, interval: &str, limit: u16) -> Result<Vec<Candle>> {
     let limit = limit.clamp(1, 1000);
     let symbol = symbol.to_uppercase();
-    let url = format!(
-        "{KLINES_URL}?symbol={symbol}&interval={interval}&limit={limit}"
-    );
+    let url = format!("{KLINES_URL}?symbol={symbol}&interval={interval}&limit={limit}");
 
     tracing::info!(%symbol, %interval, limit, "fetching binance klines");
 
@@ -39,6 +43,137 @@ pub async fn fetch_klines(symbol: &str, interval: &str, limit: u16) -> Result<Ve
     }
 
     Ok(candles)
+}
+
+/// Trading symbols from exchangeInfo (cached for process lifetime).
+pub async fn fetch_symbols() -> Result<Vec<SymbolInfo>> {
+    if let Ok(guard) = SYMBOLS_CACHE.lock() {
+        if let Some(cached) = guard.as_ref() {
+            return Ok(cached.clone());
+        }
+    }
+
+    tracing::info!("fetching binance exchangeInfo");
+    let started = Instant::now();
+    let client = reqwest::Client::new();
+    let body: Value = client
+        .get(EXCHANGE_INFO_URL)
+        .send()
+        .await
+        .context("binance exchangeInfo request")?
+        .error_for_status()
+        .context("binance exchangeInfo http status")?
+        .json()
+        .await
+        .context("binance exchangeInfo json")?;
+
+    let symbols = parse_exchange_symbols(&body)?;
+    tracing::info!(
+        count = symbols.len(),
+        elapsed_ms = started.elapsed().as_millis() as u64,
+        "parsed exchange symbols"
+    );
+
+    if let Ok(mut guard) = SYMBOLS_CACHE.lock() {
+        *guard = Some(symbols.clone());
+    }
+
+    Ok(symbols)
+}
+
+pub fn parse_exchange_symbols(body: &Value) -> Result<Vec<SymbolInfo>> {
+    let arr = body
+        .get("symbols")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| anyhow!("exchangeInfo missing symbols array"))?;
+
+    let mut out = Vec::with_capacity(arr.len());
+    for item in arr {
+        match parse_symbol_entry(item) {
+            Ok(Some(s)) => out.push(s),
+            Ok(None) => {}
+            Err(e) => tracing::warn!(error = %e, "skip bad symbol entry"),
+        }
+    }
+    out.sort_by(|a, b| a.ticker.cmp(&b.ticker));
+    Ok(out)
+}
+
+fn parse_symbol_entry(item: &Value) -> Result<Option<SymbolInfo>> {
+    let status = item
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    if status != "TRADING" {
+        return Ok(None);
+    }
+
+    let ticker = item
+        .get("symbol")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow!("missing symbol"))?
+        .to_string();
+    let base = item
+        .get("baseAsset")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let quote = item
+        .get("quoteAsset")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let price_precision = precision_from_filters(item, "PRICE_FILTER", "tickSize")
+        .or_else(|| {
+            item.get("quoteAssetPrecision")
+                .and_then(|v| v.as_i64())
+                .map(|n| n as i32)
+        })
+        .unwrap_or(8);
+
+    let volume_precision = precision_from_filters(item, "LOT_SIZE", "stepSize")
+        .or_else(|| {
+            item.get("baseAssetPrecision")
+                .and_then(|v| v.as_i64())
+                .map(|n| n as i32)
+        })
+        .unwrap_or(8);
+
+    Ok(Some(SymbolInfo {
+        ticker,
+        base,
+        quote,
+        price_precision,
+        volume_precision,
+    }))
+}
+
+/// Decimal places implied by a filter size string like "0.00100000".
+fn precision_from_filters(item: &Value, filter_type: &str, field: &str) -> Option<i32> {
+    let filters = item.get("filters")?.as_array()?;
+    for f in filters {
+        if f.get("filterType").and_then(|v| v.as_str()) != Some(filter_type) {
+            continue;
+        }
+        let size = f.get(field)?.as_str()?;
+        return Some(decimal_places(size));
+    }
+    None
+}
+
+fn decimal_places(size: &str) -> i32 {
+    let trimmed = size.trim_end_matches('0');
+    if let Some(dot) = trimmed.find('.') {
+        let frac = &trimmed[dot + 1..];
+        if frac.is_empty() {
+            0
+        } else {
+            frac.len() as i32
+        }
+    } else {
+        0
+    }
 }
 
 /// Parse one Binance kline array row into a Candle.
@@ -115,5 +250,44 @@ mod tests {
         assert!((c.open - 0.01634790).abs() < 1e-9);
         assert!((c.close - 0.01577100).abs() < 1e-9);
         assert!((c.volume - 148976.11427815).abs() < 1e-6);
+    }
+
+    #[test]
+    fn decimal_places_from_tick() {
+        assert_eq!(decimal_places("0.01000000"), 2);
+        assert_eq!(decimal_places("0.00100000"), 3);
+        assert_eq!(decimal_places("1.00000000"), 0);
+    }
+
+    #[test]
+    fn parses_exchange_symbols_trading_only() {
+        let body = json!({
+            "symbols": [
+                {
+                    "symbol": "ETHUSDT",
+                    "status": "TRADING",
+                    "baseAsset": "ETH",
+                    "quoteAsset": "USDT",
+                    "baseAssetPrecision": 8,
+                    "quoteAssetPrecision": 8,
+                    "filters": [
+                        { "filterType": "PRICE_FILTER", "tickSize": "0.01000000" },
+                        { "filterType": "LOT_SIZE", "stepSize": "0.00010000" }
+                    ]
+                },
+                {
+                    "symbol": "OLDUSDT",
+                    "status": "BREAK",
+                    "baseAsset": "OLD",
+                    "quoteAsset": "USDT",
+                    "filters": []
+                }
+            ]
+        });
+        let list = parse_exchange_symbols(&body).unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].ticker, "ETHUSDT");
+        assert_eq!(list[0].price_precision, 2);
+        assert_eq!(list[0].volume_precision, 4);
     }
 }

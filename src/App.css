@@ -64,6 +64,87 @@ body,
   color: #58a6ff;
 }
 
+.symbol-picker {
+  position: relative;
+  min-width: 140px;
+}
+
+.symbol-input {
+  width: 140px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  background: #0d1117;
+  color: #58a6ff;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.symbol-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+}
+
+.symbol-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  min-width: 220px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.symbol-option {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: #e8eaed;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.symbol-option:hover,
+.symbol-option.active {
+  background: #21262d;
+}
+
+.symbol-ticker {
+  font-weight: 600;
+  color: #58a6ff;
+}
+
+.symbol-pair {
+  color: #8b949e;
+  font-size: 0.85em;
+}
+
+.symbol-empty {
+  padding: 8px 10px;
+  color: #8b949e;
+}
+
+.symbol-hint {
+  color: #8b949e;
+  font-size: 0.85em;
+}
+
 .intervals {
   display: flex;
   gap: 2px;
