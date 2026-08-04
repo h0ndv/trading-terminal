@@ -9,6 +9,9 @@ use events::emit_candle;
 use tokio::sync::mpsc;
 use tracing_subscriber::EnvFilter;
 
+const DEFAULT_SYMBOL: &str = "BTCUSDT";
+const DEFAULT_INTERVAL: &str = "1m";
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tracing_subscriber::fmt()
@@ -24,8 +27,10 @@ pub fn run() {
             let handle = app.handle().clone();
             let (tx, mut rx) = mpsc::channel(256);
 
+            let symbol = DEFAULT_SYMBOL.to_string();
+            let interval = DEFAULT_INTERVAL.to_string();
             tauri::async_runtime::spawn(async move {
-                binance::run_stream(tx).await;
+                binance::run_stream(&symbol, &interval, tx).await;
             });
 
             tauri::async_runtime::spawn(async move {

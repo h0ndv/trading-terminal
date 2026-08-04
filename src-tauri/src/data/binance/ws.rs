@@ -6,8 +6,6 @@ use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-const WS_URL: &str = "wss://stream.binance.com:9443/ws/btcusdt@kline_1m";
-
 #[derive(Debug, Deserialize)]
 struct KlineEvent {
     k: KlinePayload,
@@ -21,6 +19,14 @@ struct KlinePayload {
     l: String,
     c: String,
     v: String,
+    /// Candle closed (reserved for future closed-only consumers).
+    #[serde(default)]
+    x: bool,
+}
+
+fn stream_url(symbol: &str, interval: &str) -> String {
+    let sym = symbol.to_lowercase();
+    format!("wss://stream.binance.com:9443/ws/{sym}@kline_{interval}")
 }
 
 fn parse_candle(k: &KlinePayload) -> Result<Candle> {
@@ -35,12 +41,13 @@ fn parse_candle(k: &KlinePayload) -> Result<Candle> {
 }
 
 /// Connect to Binance kline stream and forward candles. Reconnects with backoff on failure.
-pub async fn run_stream(tx: mpsc::Sender<Candle>) {
+pub async fn run_stream(symbol: &str, interval: &str, tx: mpsc::Sender<Candle>) {
+    let url = stream_url(symbol, interval);
     let mut backoff_secs: u64 = 1;
     const MAX_BACKOFF: u64 = 30;
 
     loop {
-        match connect_and_read(&tx).await {
+        match connect_and_read(&url, &tx).await {
             Ok(()) => {
                 tracing::warn!("binance ws closed cleanly; reconnecting");
                 backoff_secs = 1;
@@ -55,9 +62,9 @@ pub async fn run_stream(tx: mpsc::Sender<Candle>) {
     }
 }
 
-async fn connect_and_read(tx: &mpsc::Sender<Candle>) -> Result<()> {
-    tracing::info!(url = WS_URL, "connecting to binance ws");
-    let (ws, _) = connect_async(WS_URL)
+async fn connect_and_read(url: &str, tx: &mpsc::Sender<Candle>) -> Result<()> {
+    tracing::info!(%url, "connecting to binance ws");
+    let (ws, _) = connect_async(url)
         .await
         .context("binance ws connect")?;
     tracing::info!("binance ws connected");
@@ -67,14 +74,19 @@ async fn connect_and_read(tx: &mpsc::Sender<Candle>) -> Result<()> {
         let msg = msg.context("ws read")?;
         match msg {
             Message::Text(text) => match serde_json::from_str::<KlineEvent>(&text) {
-                Ok(ev) => match parse_candle(&ev.k) {
-                    Ok(candle) => {
-                        if tx.send(candle).await.is_err() {
-                            return Err(anyhow!("candle channel closed"));
-                        }
+                Ok(ev) => {
+                    if ev.k.x {
+                        tracing::trace!(ts = ev.k.t, "kline closed");
                     }
-                    Err(e) => tracing::warn!(error = %e, "failed to parse kline fields"),
-                },
+                    match parse_candle(&ev.k) {
+                        Ok(candle) => {
+                            if tx.send(candle).await.is_err() {
+                                return Err(anyhow!("candle channel closed"));
+                            }
+                        }
+                        Err(e) => tracing::warn!(error = %e, "failed to parse kline fields"),
+                    }
+                }
                 Err(e) => tracing::warn!(error = %e, "failed to deserialize kline event"),
             },
             Message::Ping(_) | Message::Pong(_) => {}

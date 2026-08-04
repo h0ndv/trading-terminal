@@ -25,6 +25,7 @@ serde_json = "1"
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "sync", "time"] }
 tokio-tungstenite = { version = "0.30.0", features = ["native-tls"] }
 futures-util = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls"] }
 chrono = "0.4.45"
 anyhow = "1.0.104"
 thiserror = "2.0.19"

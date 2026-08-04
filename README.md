@@ -24,15 +24,22 @@ bun run tauri build
 
 (`npm run tauri dev` / `npm run tauri build` also work if you use npm; `tauri.conf.json` uses Bun for the Vite frontend scripts.)
 
+## Market data (Binance)
+
+- **History**: REST `GET /api/v3/klines` via `get_historical` (up to 500 bars).
+- **Live**: WebSocket `{symbol}@kline_{interval}` → Tauri event `candle-update` → chart `subscribeBar`.
+
+The kline WS alone cannot fill the chart; REST + WS is the standard terminal pattern.
+
 ## Symbol / timeframe
 
 Phase 1 hardcodes **BTCUSDT** / **1m** in:
 
 - `src/App.tsx` (header + chart props)
-- Binance stream URL in `src-tauri/src/data/binance.rs`
-- `get_historical` interval mapping in `src-tauri/src/commands.rs`
+- `src-tauri/src/lib.rs` (`DEFAULT_SYMBOL` / `DEFAULT_INTERVAL` for the WS)
+- `get_historical` args from the frontend (same pair)
 
-Change those together when switching pairs/intervals.
+Change those together when switching pairs/intervals. Exchange logic lives under `src-tauri/src/data/binance/` for future multi-exchange adapters.
 
 ## Architecture
 
