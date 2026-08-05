@@ -16,7 +16,6 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  DRAWING_COLOR_PRESETS,
   DEFAULT_DRAWING_STYLE,
   type DrawingSnapshot,
   type DrawingStyle,
@@ -35,6 +34,7 @@ type Props = {
   target: QuickTarget | null;
   drawing: DrawingSnapshot | null;
   indicator: IndicatorConfig | null;
+  colorPresets: string[];
   barPos: Pos | null;
   onBarPosChange: (pos: Pos) => void;
   onClose: () => void;
@@ -211,6 +211,7 @@ export default function QuickEditBar({
   target,
   drawing,
   indicator,
+  colorPresets,
   barPos,
   onBarPosChange,
   onClose,
@@ -269,7 +270,7 @@ export default function QuickEditBar({
                   })
                 }
               />
-              {DRAWING_COLOR_PRESETS.map((c) => (
+              {colorPresets.map((c) => (
                 <button
                   key={c}
                   type="button"

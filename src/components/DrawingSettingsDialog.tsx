@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  DRAWING_COLOR_PRESETS,
+  DEFAULT_DRAWING_STYLE,
   toolNeedsText,
   type DrawingSnapshot,
   type DrawingStyle,
@@ -11,28 +11,24 @@ import Dialog from "./ui/Dialog";
 
 type Props = {
   drawing: DrawingSnapshot | null;
+  colorPresets: string[];
   onClose: () => void;
   onSave: (id: string, patch: Partial<DrawingSnapshot>) => void;
   onDelete: (id: string) => void;
 };
 
 function styleOf(d: DrawingSnapshot): DrawingStyle {
-  return (
-    d.styles ?? {
-      color: "#58a6ff",
-      size: 1,
-      lineStyle: "solid",
-    }
-  );
+  return d.styles ?? { ...DEFAULT_DRAWING_STYLE };
 }
 
 export default function DrawingSettingsDialog({
   drawing,
+  colorPresets,
   onClose,
   onSave,
   onDelete,
 }: Props) {
-  const [color, setColor] = useState("#58a6ff");
+  const [color, setColor] = useState(DEFAULT_DRAWING_STYLE.color);
   const [size, setSize] = useState(1);
   const [lineStyle, setLineStyle] = useState<"solid" | "dashed">("solid");
   const [visible, setVisible] = useState(true);
@@ -97,7 +93,7 @@ export default function DrawingSettingsDialog({
             aria-label="Line color"
             onChange={(e) => setColor(e.target.value)}
           />
-          {DRAWING_COLOR_PRESETS.map((c) => (
+          {colorPresets.map((c) => (
             <button
               key={c}
               type="button"

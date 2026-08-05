@@ -12,6 +12,7 @@ import QuickEditBar, {
   type QuickTarget,
 } from "./components/QuickEditBar";
 import Dialog from "./components/ui/Dialog";
+import ThemePicker from "./components/ThemePicker";
 import SymbolPicker, { useSymbolCatalog } from "./components/SymbolPicker";
 import { useCandleStream } from "./hooks/useCandleStream";
 import {
@@ -37,6 +38,13 @@ import {
   VALID_INTERVALS,
   type QuickBarPos,
 } from "./lib/settings";
+import {
+  applyThemeToDOM,
+  defaultDrawingColor,
+  drawingColorPresets,
+  resolveThemeTokens,
+  type ThemeMode,
+} from "./lib/theme";
 import { setStream } from "./lib/tauriBridge";
 import type { SymbolInfo } from "./lib/types";
 
@@ -75,12 +83,29 @@ function App() {
     useState<QuickBarPos | null>(null);
   const [favoriteTools, setFavoriteTools] = useState<DrawingToolId[]>([]);
   const [favoritesBarVisible, setFavoritesBarVisible] = useState(true);
+  const [themeId, setThemeId] = useState(DEFAULT_SETTINGS.themeId);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(
+    DEFAULT_SETTINGS.themeMode,
+  );
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const { symbols, loading } = useSymbolCatalog();
   const stream = useCandleStream(symbol, timeframe);
 
+  const themeTokens = useMemo(
+    () => resolveThemeTokens(themeId, themeMode),
+    [themeId, themeMode],
+  );
+  const colorPresets = useMemo(
+    () => drawingColorPresets(themeTokens),
+    [themeTokens],
+  );
+
   const drawings = drawingsBySymbol[symbol] ?? [];
   const drawingsHidden = drawingsAreHidden(drawings);
+
+  useEffect(() => {
+    applyThemeToDOM(themeTokens, themeMode);
+  }, [themeTokens, themeMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +119,14 @@ function App() {
       setFavoritesBarPos(s.favoritesBarPos);
       setFavoriteTools(s.favoriteTools);
       setFavoritesBarVisible(s.favoritesBarVisible);
+      setThemeId(s.themeId);
+      setThemeMode(s.themeMode);
+      const tokens = resolveThemeTokens(s.themeId, s.themeMode);
+      setDrawStyle((prev) =>
+        prev.color === DEFAULT_DRAWING_STYLE.color
+          ? { ...prev, color: defaultDrawingColor(tokens) }
+          : prev,
+      );
       setHydrated(true);
     });
     return () => {
@@ -119,6 +152,8 @@ function App() {
       favoritesBarPos,
       favoriteTools,
       favoritesBarVisible,
+      themeId,
+      themeMode,
     });
   }, [
     hydrated,
@@ -130,6 +165,8 @@ function App() {
     favoritesBarPos,
     favoriteTools,
     favoritesBarVisible,
+    themeId,
+    themeMode,
   ]);
 
   useEffect(() => {
@@ -308,6 +345,12 @@ function App() {
             onChange={setIndicators}
             onOpenSettings={(id) => setQuickTarget({ kind: "indicator", id })}
           />
+          <ThemePicker
+            themeId={themeId}
+            themeMode={themeMode}
+            onThemeId={setThemeId}
+            onThemeMode={setThemeMode}
+          />
         </div>
       </header>
       <div className="workspace">
@@ -318,6 +361,7 @@ function App() {
           onMagnetMode={setMagnetMode}
           style={drawStyle}
           onStyleChange={setDrawStyle}
+          colorPresets={colorPresets}
           annotationText={annotationText}
           onAnnotationTextChange={setAnnotationText}
           drawingsHidden={drawingsHidden}
@@ -341,6 +385,9 @@ function App() {
               volumePrecision={volumePrecision}
               stream={stream}
               indicators={indicators}
+              themeTokens={themeTokens}
+              themeId={themeId}
+              themeMode={themeMode}
               activeTool={activeTool}
               magnetMode={magnetMode}
               drawStyle={drawStyle}
@@ -370,6 +417,7 @@ function App() {
             target={quickTarget}
             drawing={quickDrawing}
             indicator={quickIndicator}
+            colorPresets={colorPresets}
             barPos={quickBarPos}
             onBarPosChange={setQuickBarPos}
             onClose={() => setQuickTarget(null)}
@@ -402,6 +450,7 @@ function App() {
       />
       <DrawingSettingsDialog
         drawing={drawingForDialog}
+        colorPresets={colorPresets}
         onClose={() => setConfigTarget(null)}
         onSave={(id, patch) =>
           onDrawingsChange(patchDrawing(drawings, id, patch))
@@ -419,7 +468,7 @@ function App() {
         confirmLabel="Delete"
         confirmDanger
       >
-        <p style={{ margin: 0, color: "#8b949e" }}>
+        <p style={{ margin: 0, color: "var(--muted-foreground)" }}>
           This drawing is locked. Delete it anyway?
         </p>
       </Dialog>

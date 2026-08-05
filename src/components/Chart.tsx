@@ -26,8 +26,9 @@ import {
 } from "../lib/indicators";
 import {
   INDICATOR_FEATURE,
-  INDICATOR_TOOLTIP_FEATURES,
+  indicatorTooltipFeatures,
 } from "../lib/tooltipFeatures";
+import { toKLineStyles, type ThemeTokens } from "../lib/theme";
 import type { Candle } from "../lib/types";
 
 export type IndicatorFeatureAction = "visible" | "settings" | "close";
@@ -39,6 +40,9 @@ type Props = {
   volumePrecision: number;
   stream: CandleHandlers;
   indicators: IndicatorConfig[];
+  themeTokens: ThemeTokens;
+  themeId: string;
+  themeMode: string;
   activeTool: DrawingToolId | null;
   magnetMode: OverlayMagnetMode;
   drawStyle: DrawingStyle;
@@ -263,6 +267,9 @@ export default function ChartView({
   volumePrecision,
   stream,
   indicators,
+  themeTokens,
+  themeId,
+  themeMode,
   activeTool,
   magnetMode,
   drawStyle,
@@ -300,9 +307,50 @@ export default function ChartView({
   onOpenDrawingSettingsRef.current = onOpenDrawingSettings;
   const onDrawingSelectRef = useRef(onDrawingSelect);
   onDrawingSelectRef.current = onDrawingSelect;
+  const themeTokensRef = useRef(themeTokens);
+  themeTokensRef.current = themeTokens;
 
   function emitDrawings(chart: Chart) {
     onDrawingsChangeRef.current(collectUserDrawings(chart));
+  }
+
+  function applyChartTheme(chart: Chart, tokens: ThemeTokens) {
+    const up = tokens["candle-up"];
+    const down = tokens["candle-down"];
+    const themed = toKLineStyles(tokens);
+    // Candle bar first so merge can't be skipped by a partial tooltip-only path.
+    chart.setStyles({
+      candle: {
+        bar: {
+          upColor: up,
+          downColor: down,
+          noChangeColor: tokens["muted-foreground"],
+          upBorderColor: up,
+          downBorderColor: down,
+          noChangeBorderColor: tokens["muted-foreground"],
+          upWickColor: up,
+          downWickColor: down,
+          noChangeWickColor: tokens["muted-foreground"],
+        },
+        priceMark: {
+          last: {
+            upColor: up,
+            downColor: down,
+            noChangeColor: tokens["muted-foreground"],
+          },
+        },
+      },
+    });
+    chart.setStyles({
+      ...themed,
+      indicator: {
+        ...themed.indicator,
+        tooltip: {
+          ...themed.indicator?.tooltip,
+          features: indicatorTooltipFeatures(tokens),
+        },
+      },
+    });
   }
 
   useEffect(() => {
@@ -316,13 +364,7 @@ export default function ChartView({
     orderKeyRef.current = "";
     drawingsRestoredRef.current = false;
 
-    chart.setStyles({
-      indicator: {
-        tooltip: {
-          features: INDICATOR_TOOLTIP_FEATURES,
-        },
-      },
-    });
+    applyChartTheme(chart, themeTokensRef.current);
 
     chart.subscribeAction("onIndicatorTooltipFeatureClick", (data) => {
       const payload = data as {
@@ -396,6 +438,12 @@ export default function ChartView({
       chartRef.current = null;
     };
   }, [symbol, timeframe, pricePrecision, volumePrecision]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    applyChartTheme(chart, themeTokens);
+  }, [themeId, themeMode, themeTokens]);
 
   useEffect(() => {
     const chart = chartRef.current;

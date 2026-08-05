@@ -10,6 +10,13 @@ import {
   normalizeIndicators,
   type IndicatorConfig,
 } from "./indicators";
+import {
+  DEFAULT_THEME_ID,
+  DEFAULT_THEME_MODE,
+  normalizeThemeId,
+  normalizeThemeMode,
+  type ThemeMode,
+} from "./theme";
 
 export const VALID_INTERVALS = [
   "1m",
@@ -25,7 +32,7 @@ export const VALID_INTERVALS = [
 export type QuickBarPos = { x: number; y: number };
 
 export type AppSettings = {
-  version: 3;
+  version: 4;
   symbol: string;
   timeframe: string;
   indicators: IndicatorConfig[];
@@ -34,10 +41,12 @@ export type AppSettings = {
   favoritesBarPos: QuickBarPos | null;
   favoriteTools: DrawingToolId[];
   favoritesBarVisible: boolean;
+  themeId: string;
+  themeMode: ThemeMode;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  version: 3,
+  version: 4,
   symbol: "BTCUSDT",
   timeframe: "1m",
   indicators: DEFAULT_INDICATORS.map((d) => ({
@@ -49,6 +58,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   favoritesBarPos: null,
   favoriteTools: [],
   favoritesBarVisible: true,
+  themeId: DEFAULT_THEME_ID,
+  themeMode: DEFAULT_THEME_MODE,
 };
 
 export function normalizeQuickBarPos(raw: unknown): QuickBarPos | null {
@@ -79,7 +90,7 @@ function normalizeTimeframe(raw: unknown): string {
 
 export function normalizeSettings(partial: Partial<AppSettings>): AppSettings {
   return {
-    version: 3,
+    version: 4,
     symbol: normalizeSymbol(partial.symbol),
     timeframe: normalizeTimeframe(partial.timeframe),
     indicators: normalizeIndicators(
@@ -103,6 +114,16 @@ export function normalizeSettings(partial: Partial<AppSettings>): AppSettings {
       partial.favoritesBarVisible === undefined
         ? DEFAULT_SETTINGS.favoritesBarVisible
         : Boolean(partial.favoritesBarVisible),
+    themeId: normalizeThemeId(
+      partial.themeId === undefined
+        ? DEFAULT_SETTINGS.themeId
+        : partial.themeId,
+    ),
+    themeMode: normalizeThemeMode(
+      partial.themeMode === undefined
+        ? DEFAULT_SETTINGS.themeMode
+        : partial.themeMode,
+    ),
   };
 }
 
@@ -122,6 +143,8 @@ export async function loadSettings(): Promise<AppSettings> {
     const favoritesBarVisible = await store.get<boolean>(
       "favoritesBarVisible",
     );
+    const themeId = await store.get<string>("themeId");
+    const themeMode = await store.get<ThemeMode>("themeMode");
     return normalizeSettings({
       symbol: symbol ?? DEFAULT_SETTINGS.symbol,
       timeframe: timeframe ?? DEFAULT_SETTINGS.timeframe,
@@ -133,6 +156,8 @@ export async function loadSettings(): Promise<AppSettings> {
       favoriteTools: favoriteTools ?? DEFAULT_SETTINGS.favoriteTools,
       favoritesBarVisible:
         favoritesBarVisible ?? DEFAULT_SETTINGS.favoritesBarVisible,
+      themeId: themeId ?? DEFAULT_SETTINGS.themeId,
+      themeMode: themeMode ?? DEFAULT_SETTINGS.themeMode,
     });
   } catch (e) {
     console.error("loadSettings failed", e);
@@ -163,6 +188,8 @@ export async function saveSettings(
       | "favoritesBarPos"
       | "favoriteTools"
       | "favoritesBarVisible"
+      | "themeId"
+      | "themeMode"
     >
   >,
 ): Promise<void> {
@@ -177,6 +204,8 @@ export async function saveSettings(
     await store.set("favoritesBarPos", next.favoritesBarPos);
     await store.set("favoriteTools", next.favoriteTools);
     await store.set("favoritesBarVisible", next.favoritesBarVisible);
+    await store.set("themeId", next.themeId);
+    await store.set("themeMode", next.themeMode);
     await store.save();
   } catch (e) {
     console.error("saveSettings failed", e);

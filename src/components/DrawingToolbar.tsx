@@ -12,7 +12,6 @@ import {
   IconTrendLine,
 } from "./DrawingToolIcons";
 import {
-  DRAWING_COLOR_PRESETS,
   DRAWING_TOOL_GROUPS,
   cycleMagnetMode,
   findToolGroup,
@@ -31,6 +30,7 @@ type Props = {
   onMagnetMode: (mode: OverlayMagnetMode) => void;
   style: DrawingStyle;
   onStyleChange: (next: DrawingStyle) => void;
+  colorPresets: string[];
   annotationText: string;
   onAnnotationTextChange: (text: string) => void;
   drawingsHidden: boolean;
@@ -57,6 +57,7 @@ export default function DrawingToolbar({
   onMagnetMode,
   style,
   onStyleChange,
+  colorPresets,
   annotationText,
   onAnnotationTextChange,
   drawingsHidden,
@@ -332,7 +333,7 @@ export default function DrawingToolbar({
                 onStyleChange({ ...style, color: e.target.value })
               }
             />
-            {DRAWING_COLOR_PRESETS.map((c) => (
+            {colorPresets.map((c) => (
               <button
                 key={c}
                 type="button"
