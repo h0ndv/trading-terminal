@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
+import { Eye, EyeOff, Settings2 } from "lucide-react";
 import {
   INDICATOR_META,
-  formatPeriodInput,
-  parsePeriodInput,
   reorderIndicators,
   type BuiltinIndicatorId,
   type IndicatorCategory,
@@ -12,6 +11,7 @@ import {
 type Props = {
   value: IndicatorConfig[];
   onChange: (next: IndicatorConfig[]) => void;
+  onOpenSettings: (id: BuiltinIndicatorId) => void;
 };
 
 type TabId = "all" | IndicatorCategory;
@@ -23,26 +23,17 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "volume", label: "Volume" },
 ];
 
-function draftsFromValue(value: IndicatorConfig[]): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const c of value) {
-    out[c.id] = formatPeriodInput(c.calcParams);
-  }
-  return out;
-}
-
-export default function IndicatorPanel({ value, onChange }: Props) {
+export default function IndicatorPanel({
+  value,
+  onChange,
+  onOpenSettings,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabId>("all");
-  const [drafts, setDrafts] = useState(() => draftsFromValue(value));
   const [draggingId, setDraggingId] = useState<BuiltinIndicatorId | null>(
     null,
   );
   const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setDrafts(draftsFromValue(value));
-  }, [value]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -60,22 +51,6 @@ export default function IndicatorPanel({ value, onChange }: Props) {
 
   function patch(id: BuiltinIndicatorId, next: Partial<IndicatorConfig>) {
     onChange(value.map((c) => (c.id === id ? { ...c, ...next } : c)));
-  }
-
-  function commitPeriod(id: BuiltinIndicatorId) {
-    const meta = INDICATOR_META[id];
-    const cfg = value.find((c) => c.id === id);
-    const parsed = parsePeriodInput(
-      drafts[id] ?? "",
-      meta.paramCount,
-      meta.allowFloat,
-    );
-    if (parsed) {
-      patch(id, { calcParams: parsed });
-      setDrafts((d) => ({ ...d, [id]: formatPeriodInput(parsed) }));
-    } else if (cfg) {
-      setDrafts((d) => ({ ...d, [id]: formatPeriodInput(cfg.calcParams) }));
-    }
   }
 
   function onDragStart(e: DragEvent, id: BuiltinIndicatorId) {
@@ -167,33 +142,52 @@ export default function IndicatorPanel({ value, onChange }: Props) {
                           patch(cfg.id, { enabled: e.target.checked })
                         }
                       />
-                      <span>{meta.label}</span>
+                      <span>
+                        {meta.label}
+                        {cfg.enabled
+                          ? ` (${cfg.calcParams.join(",")})`
+                          : ""}
+                      </span>
                     </label>
-                    <label className="indicator-params">
-                      <span className="indicator-params-label">Params</span>
-                      <input
-                        className="indicator-period"
-                        type="text"
-                        inputMode="decimal"
-                        disabled={!cfg.enabled}
-                        placeholder={meta.paramHint}
-                        value={drafts[cfg.id] ?? ""}
-                        aria-label={`${meta.label} params`}
-                        onChange={(e) =>
-                          setDrafts((d) => ({
-                            ...d,
-                            [cfg.id]: e.target.value,
-                          }))
+                    <div className="indicator-row-actions">
+                      <button
+                        type="button"
+                        className={
+                          cfg.visible
+                            ? "indicator-action-btn"
+                            : "indicator-action-btn active"
                         }
-                        onBlur={() => commitPeriod(cfg.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            commitPeriod(cfg.id);
-                          }
+                        title={cfg.visible ? "Hide" : "Show"}
+                        aria-label={
+                          cfg.visible
+                            ? `Hide ${meta.label}`
+                            : `Show ${meta.label}`
+                        }
+                        disabled={!cfg.enabled}
+                        onClick={() =>
+                          patch(cfg.id, { visible: !cfg.visible })
+                        }
+                      >
+                        {cfg.visible ? (
+                          <Eye size={14} strokeWidth={2} />
+                        ) : (
+                          <EyeOff size={14} strokeWidth={2} />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="indicator-action-btn"
+                        title="Settings"
+                        aria-label={`${meta.label} settings`}
+                        disabled={!cfg.enabled}
+                        onClick={() => {
+                          setOpen(false);
+                          onOpenSettings(cfg.id);
                         }}
-                      />
-                    </label>
+                      >
+                        <Settings2 size={14} strokeWidth={2} />
+                      </button>
+                    </div>
                   </div>
                 );
               })
