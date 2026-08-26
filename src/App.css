@@ -130,34 +130,68 @@ body,
   margin: 0;
   padding: 4px 0;
   list-style: none;
-  min-width: 220px;
+  min-width: 248px;
   max-height: 280px;
   overflow-y: auto;
-  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  background: var(--popover);
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--foreground) 18%, transparent);
+}
+
+.symbol-option-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.symbol-option-row:hover {
+  background: var(--secondary);
 }
 
 .symbol-option {
   display: flex;
-  width: 100%;
+  flex: 1;
   justify-content: space-between;
   gap: 12px;
   margin: 0;
-  padding: 6px 10px;
+  padding: 6px 6px 6px 10px;
   border: none;
   background: transparent;
-  color: var(--foreground);
+  color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  border-radius: 0;
 }
 
 .symbol-option:hover,
 .symbol-option.active {
+  background: transparent;
+}
+
+.symbol-option-row:has(.symbol-option.active) {
   background: var(--secondary);
+}
+
+.symbol-watch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.symbol-watch-btn:hover {
+  color: var(--chart-4);
+}
+
+.symbol-watch-btn.active {
+  color: var(--chart-4);
 }
 
 .symbol-ticker {
@@ -226,6 +260,142 @@ body,
   flex: 1;
   min-height: 0;
   width: 100%;
+}
+
+.watchlist {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 180px;
+  min-height: 0;
+  border-right: 1px solid var(--sidebar-border);
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  z-index: 4;
+}
+
+.watchlist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.watchlist-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.watchlist-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 2px;
+  border: none;
+  border-radius: calc(var(--radius) - 1px);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.watchlist-add-btn:hover {
+  color: var(--sidebar-primary);
+  background: var(--sidebar-accent);
+}
+
+.watchlist-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.watchlist-empty {
+  padding: 10px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.watchlist-row-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.watchlist-row-wrap:hover {
+  background: var(--sidebar-accent);
+}
+
+.watchlist-row {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 4px 6px 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.watchlist-row:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.watchlist-row.active {
+  background: var(--sidebar-accent);
+  box-shadow: inset 2px 0 0 var(--sidebar-primary);
+}
+
+.watchlist-ticker {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sidebar-primary);
+}
+
+.watchlist-pair {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+
+.watchlist-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.watchlist-row-wrap:hover .watchlist-remove-btn,
+.watchlist-row.active + .watchlist-remove-btn {
+  opacity: 1;
+}
+
+.watchlist-remove-btn:hover {
+  color: var(--sidebar-foreground);
 }
 
 .drawing-toolbar {

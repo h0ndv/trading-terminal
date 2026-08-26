@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { IconStar } from "./DrawingToolIcons";
 import { listSymbols } from "../lib/tauriBridge";
 import type { SymbolInfo } from "../lib/types";
 
@@ -7,6 +8,8 @@ type Props = {
   onSelect: (info: SymbolInfo) => void;
   symbols: SymbolInfo[];
   loading: boolean;
+  watchlist: string[];
+  onToggleWatchlist: (ticker: string) => void;
 };
 
 const MAX_RESULTS = 50;
@@ -16,6 +19,8 @@ export default function SymbolPicker({
   onSelect,
   symbols,
   loading,
+  watchlist,
+  onToggleWatchlist,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
@@ -92,26 +97,48 @@ export default function SymbolPicker({
           {filtered.length === 0 ? (
             <li className="symbol-empty">No matches</li>
           ) : (
-            filtered.map((s) => (
-              <li key={s.ticker}>
-                <button
-                  type="button"
-                  className={
-                    s.ticker === value
-                      ? "symbol-option active"
-                      : "symbol-option"
-                  }
-                  role="option"
-                  aria-selected={s.ticker === value}
-                  onClick={() => pick(s)}
-                >
-                  <span className="symbol-ticker">{s.ticker}</span>
-                  <span className="symbol-pair">
-                    {s.base}/{s.quote}
-                  </span>
-                </button>
-              </li>
-            ))
+            filtered.map((s) => {
+              const fav = watchlist.includes(s.ticker);
+              return (
+                <li key={s.ticker} className="symbol-option-row">
+                  <button
+                    type="button"
+                    className={
+                      s.ticker === value
+                        ? "symbol-option active"
+                        : "symbol-option"
+                    }
+                    role="option"
+                    aria-selected={s.ticker === value}
+                    onClick={() => pick(s)}
+                  >
+                    <span className="symbol-ticker">{s.ticker}</span>
+                    <span className="symbol-pair">
+                      {s.base}/{s.quote}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      fav ? "symbol-watch-btn active" : "symbol-watch-btn"
+                    }
+                    title={fav ? "Remove from watchlist" : "Add to watchlist"}
+                    aria-label={
+                      fav
+                        ? `Remove ${s.ticker} from watchlist`
+                        : `Add ${s.ticker} to watchlist`
+                    }
+                    aria-pressed={fav}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleWatchlist(s.ticker);
+                    }}
+                  >
+                    <IconStar size={14} filled={fav} />
+                  </button>
+                </li>
+              );
+            })
           )}
         </ul>
       )}

@@ -17,6 +17,10 @@ import {
   normalizeThemeMode,
   type ThemeMode,
 } from "./theme";
+import {
+  DEFAULT_WATCHLIST,
+  normalizeWatchlist,
+} from "./watchlist";
 
 export const VALID_INTERVALS = [
   "1m",
@@ -32,11 +36,12 @@ export const VALID_INTERVALS = [
 export type QuickBarPos = { x: number; y: number };
 
 export type AppSettings = {
-  version: 4;
+  version: 5;
   symbol: string;
   timeframe: string;
   indicators: IndicatorConfig[];
   drawingsBySymbol: Record<string, DrawingSnapshot[]>;
+  watchlist: string[];
   quickBarPos: QuickBarPos | null;
   favoritesBarPos: QuickBarPos | null;
   favoriteTools: DrawingToolId[];
@@ -46,7 +51,7 @@ export type AppSettings = {
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  version: 4,
+  version: 5,
   symbol: "BTCUSDT",
   timeframe: "1m",
   indicators: DEFAULT_INDICATORS.map((d) => ({
@@ -54,6 +59,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     calcParams: [...d.calcParams],
   })),
   drawingsBySymbol: {},
+  watchlist: [...DEFAULT_WATCHLIST],
   quickBarPos: null,
   favoritesBarPos: null,
   favoriteTools: [],
@@ -90,7 +96,7 @@ function normalizeTimeframe(raw: unknown): string {
 
 export function normalizeSettings(partial: Partial<AppSettings>): AppSettings {
   return {
-    version: 4,
+    version: 5,
     symbol: normalizeSymbol(partial.symbol),
     timeframe: normalizeTimeframe(partial.timeframe),
     indicators: normalizeIndicators(
@@ -98,6 +104,9 @@ export function normalizeSettings(partial: Partial<AppSettings>): AppSettings {
     ),
     drawingsBySymbol: normalizeDrawingsBySymbol(
       partial.drawingsBySymbol ?? DEFAULT_SETTINGS.drawingsBySymbol,
+    ),
+    watchlist: normalizeWatchlist(
+      partial.watchlist ?? DEFAULT_SETTINGS.watchlist,
     ),
     quickBarPos:
       partial.quickBarPos === undefined
@@ -135,6 +144,7 @@ export async function loadSettings(): Promise<AppSettings> {
     const drawingsBySymbol = await store.get<
       Record<string, DrawingSnapshot[]>
     >("drawingsBySymbol");
+    const watchlist = await store.get<string[]>("watchlist");
     const quickBarPos = await store.get<QuickBarPos | null>("quickBarPos");
     const favoritesBarPos = await store.get<QuickBarPos | null>(
       "favoritesBarPos",
@@ -151,6 +161,7 @@ export async function loadSettings(): Promise<AppSettings> {
       indicators: indicators ?? DEFAULT_SETTINGS.indicators,
       drawingsBySymbol:
         drawingsBySymbol ?? DEFAULT_SETTINGS.drawingsBySymbol,
+      watchlist: watchlist ?? DEFAULT_SETTINGS.watchlist,
       quickBarPos: quickBarPos ?? DEFAULT_SETTINGS.quickBarPos,
       favoritesBarPos: favoritesBarPos ?? DEFAULT_SETTINGS.favoritesBarPos,
       favoriteTools: favoriteTools ?? DEFAULT_SETTINGS.favoriteTools,
@@ -168,6 +179,7 @@ export async function loadSettings(): Promise<AppSettings> {
         calcParams: [...d.calcParams],
       })),
       drawingsBySymbol: {},
+      watchlist: [...DEFAULT_WATCHLIST],
       quickBarPos: null,
       favoritesBarPos: null,
       favoriteTools: [],
@@ -184,6 +196,7 @@ export async function saveSettings(
       | "timeframe"
       | "indicators"
       | "drawingsBySymbol"
+      | "watchlist"
       | "quickBarPos"
       | "favoritesBarPos"
       | "favoriteTools"
@@ -200,6 +213,7 @@ export async function saveSettings(
     await store.set("timeframe", next.timeframe);
     await store.set("indicators", next.indicators);
     await store.set("drawingsBySymbol", next.drawingsBySymbol);
+    await store.set("watchlist", next.watchlist);
     await store.set("quickBarPos", next.quickBarPos);
     await store.set("favoritesBarPos", next.favoritesBarPos);
     await store.set("favoriteTools", next.favoriteTools);

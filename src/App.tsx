@@ -14,6 +14,7 @@ import QuickEditBar, {
 import Dialog from "./components/ui/Dialog";
 import ThemePicker from "./components/ThemePicker";
 import SymbolPicker, { useSymbolCatalog } from "./components/SymbolPicker";
+import Watchlist from "./components/Watchlist";
 import { useCandleStream } from "./hooks/useCandleStream";
 import {
   DEFAULT_DRAWING_STYLE,
@@ -47,6 +48,7 @@ import {
 } from "./lib/theme";
 import { setStream } from "./lib/tauriBridge";
 import type { SymbolInfo } from "./lib/types";
+import { toggleWatchlist } from "./lib/watchlist";
 
 type ConfigTarget =
   | { kind: "indicator"; id: BuiltinIndicatorId }
@@ -66,6 +68,9 @@ function App() {
   const [drawingsBySymbol, setDrawingsBySymbol] = useState<
     Record<string, DrawingSnapshot[]>
   >({});
+  const [watchlist, setWatchlist] = useState<string[]>(() => [
+    ...DEFAULT_SETTINGS.watchlist,
+  ]);
   const [activeTool, setActiveTool] = useState<DrawingToolId | null>(null);
   const [magnetMode, setMagnetMode] =
     useState<OverlayMagnetMode>("normal");
@@ -115,6 +120,7 @@ function App() {
       setTimeframe(s.timeframe);
       setIndicators(s.indicators);
       setDrawingsBySymbol(s.drawingsBySymbol);
+      setWatchlist(s.watchlist);
       setQuickBarPos(s.quickBarPos);
       setFavoritesBarPos(s.favoritesBarPos);
       setFavoriteTools(s.favoriteTools);
@@ -148,6 +154,7 @@ function App() {
       timeframe,
       indicators,
       drawingsBySymbol,
+      watchlist,
       quickBarPos,
       favoritesBarPos,
       favoriteTools,
@@ -161,6 +168,7 @@ function App() {
     timeframe,
     indicators,
     drawingsBySymbol,
+    watchlist,
     quickBarPos,
     favoritesBarPos,
     favoriteTools,
@@ -217,6 +225,10 @@ function App() {
     setSymbol(info.ticker);
     setPricePrecision(info.price_precision);
     setVolumePrecision(info.volume_precision);
+  }
+
+  function onToggleWatchlist(ticker: string) {
+    setWatchlist((list) => toggleWatchlist(list, ticker));
   }
 
   function onDrawingsChange(next: DrawingSnapshot[]) {
@@ -317,6 +329,8 @@ function App() {
             onSelect={onSelectSymbol}
             symbols={symbols}
             loading={loading}
+            watchlist={watchlist}
+            onToggleWatchlist={onToggleWatchlist}
           />
           {activeInfo && (
             <span className="symbol-hint">
@@ -375,6 +389,14 @@ function App() {
           onToggleFavoritesBar={() =>
             setFavoritesBarVisible((v) => !v)
           }
+        />
+        <Watchlist
+          tickers={watchlist}
+          activeSymbol={symbol}
+          symbols={symbols}
+          onSelect={onSelectSymbol}
+          onRemove={onToggleWatchlist}
+          onAddCurrent={() => onToggleWatchlist(symbol)}
         />
         <main className="chart-area">
           {hydrated ? (
