@@ -41,6 +41,7 @@ export type AppSettings = {
   favoritesBarPos: QuickBarPos | null;
   favoriteTools: DrawingToolId[];
   favoritesBarVisible: boolean;
+  syncTimeframe: boolean;
   themeId: string;
   themeMode: ThemeMode;
 };
@@ -70,6 +71,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   favoritesBarPos: null,
   favoriteTools: [],
   favoritesBarVisible: true,
+  syncTimeframe: false,
   themeId: DEFAULT_THEME_ID,
   themeMode: DEFAULT_THEME_MODE,
 };
@@ -149,6 +151,10 @@ export function normalizeSettings(partial: Partial<AppSettings> & LegacySettings
       partial.favoritesBarVisible === undefined
         ? DEFAULT_SETTINGS.favoritesBarVisible
         : Boolean(partial.favoritesBarVisible),
+    syncTimeframe:
+      partial.syncTimeframe === undefined
+        ? DEFAULT_SETTINGS.syncTimeframe
+        : Boolean(partial.syncTimeframe),
     themeId: normalizeThemeId(
       partial.themeId === undefined ? DEFAULT_SETTINGS.themeId : partial.themeId,
     ),
@@ -175,6 +181,7 @@ export async function loadSettings(): Promise<AppSettings> {
     const favoritesBarPos = await store.get<QuickBarPos | null>('favoritesBarPos');
     const favoriteTools = await store.get<DrawingToolId[]>('favoriteTools');
     const favoritesBarVisible = await store.get<boolean>('favoritesBarVisible');
+    const syncTimeframe = await store.get<boolean>('syncTimeframe');
     const themeId = await store.get<string>('themeId');
     const themeMode = await store.get<ThemeMode>('themeMode');
 
@@ -192,6 +199,7 @@ export async function loadSettings(): Promise<AppSettings> {
       favoritesBarPos: favoritesBarPos ?? undefined,
       favoriteTools: favoriteTools ?? undefined,
       favoritesBarVisible: favoritesBarVisible ?? undefined,
+      syncTimeframe: syncTimeframe ?? undefined,
       themeId: themeId ?? undefined,
       themeMode: themeMode ?? undefined,
     });
@@ -207,6 +215,7 @@ export async function loadSettings(): Promise<AppSettings> {
       favoritesBarPos: null,
       favoriteTools: [],
       favoritesBarVisible: true,
+      syncTimeframe: false,
     };
   }
 }
@@ -224,6 +233,7 @@ export async function saveSettings(partial: Partial<AppSettings>): Promise<void>
     await store.set('favoritesBarPos', next.favoritesBarPos);
     await store.set('favoriteTools', next.favoriteTools);
     await store.set('favoritesBarVisible', next.favoritesBarVisible);
+    await store.set('syncTimeframe', next.syncTimeframe);
     await store.set('themeId', next.themeId);
     await store.set('themeMode', next.themeMode);
     await store.save();

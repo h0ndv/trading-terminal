@@ -1,6 +1,7 @@
 use crate::core::model::{Candle, ChartStreamSubscription, SymbolInfo};
 use crate::data::binance;
 use crate::market::stream_manager::StreamManagerState;
+use crate::market::ticker_manager::TickerManagerState;
 use tauri::State;
 
 #[tauri::command]
@@ -36,5 +37,16 @@ pub fn sync_chart_streams(
     tracing::info!(count = subscriptions.len(), "sync_chart_streams");
     let mut guard = manager.0.lock().map_err(|e| e.to_string())?;
     guard.sync(subscriptions);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sync_ticker_symbols(
+    manager: State<'_, TickerManagerState>,
+    symbols: Vec<String>,
+) -> Result<(), String> {
+    tracing::info!(count = symbols.len(), "sync_ticker_symbols");
+    let mut guard = manager.0.lock().map_err(|e| e.to_string())?;
+    guard.sync(symbols);
     Ok(())
 }

@@ -26,3 +26,14 @@ export interface SymbolInfo {
   price_precision: number;
   volume_precision: number;
 }
+
+export interface TickerStats {
+  symbol: string;
+  last_price: number;
+  price_change: number;
+  price_change_percent: number;
+  high_price: number;
+  low_price: number;
+  volume: number;
+  quote_volume: number;
+}

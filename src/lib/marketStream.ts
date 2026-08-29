@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { Candle, CandleUpdateEvent, ChartStreamSubscription, SymbolInfo } from './types';
+import type { Candle, CandleUpdateEvent, ChartStreamSubscription, SymbolInfo, TickerStats } from './types';
 
 export function getHistorical(
   symbol: string,
@@ -78,4 +78,55 @@ export function toStreamSubscriptions(charts: ChartStreamSync[]): ChartStreamSub
     symbol: c.symbol,
     timeframe: c.timeframe,
   }));
+}
+
+export function syncTickerSymbols(symbols: string[]): Promise<void> {
+  return invoke('sync_ticker_symbols', { symbols });
+}
+
+type TickerCallback = (stats: TickerStats) => void;
+
+const tickerCache = new Map<string, TickerStats>();
+
+const tickerListeners = new Map<string, Set<TickerCallback>>();
+let tickerUnlisten: UnlistenFn | null = null;
+let tickerSubscriberCount = 0;
+
+async function ensureTickerListener(): Promise<void> {
+  if (tickerUnlisten) return;
+  tickerUnlisten = await listen<TickerStats>('ticker-update', (event) => {
+    const stats = event.payload;
+    const key = stats.symbol.toUpperCase();
+    tickerCache.set(key, stats);
+    tickerListeners.get(key)?.forEach((cb) => cb(stats));
+  });
+}
+
+export function getCachedTicker(symbol: string): TickerStats | undefined {
+  return tickerCache.get(symbol.toUpperCase());
+}
+
+export function subscribeTicker(symbol: string, callback: TickerCallback): () => void {
+  const key = symbol.toUpperCase();
+  let set = tickerListeners.get(key);
+  if (!set) {
+    set = new Set();
+    tickerListeners.set(key, set);
+  }
+  set.add(callback);
+  tickerSubscriberCount += 1;
+  void ensureTickerListener();
+
+  return () => {
+    const bucket = tickerListeners.get(key);
+    if (!bucket) return;
+    bucket.delete(callback);
+    if (bucket.size === 0) tickerListeners.delete(key);
+    tickerSubscriberCount -= 1;
+    if (tickerSubscriberCount <= 0 && tickerUnlisten) {
+      void tickerUnlisten();
+      tickerUnlisten = null;
+      tickerSubscriberCount = 0;
+    }
+  };
 }

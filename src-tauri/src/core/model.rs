@@ -46,3 +46,15 @@ pub struct CandleUpdateEvent {
     pub timeframe: String,
     pub candle: Candle,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TickerStats {
+    pub symbol: String,
+    pub last_price: f64,
+    pub price_change: f64,
+    pub price_change_percent: f64,
+    pub high_price: f64,
+    pub low_price: f64,
+    pub volume: f64,
+    pub quote_volume: f64,
+}

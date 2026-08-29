@@ -93,6 +93,13 @@ export function updateChart(
   return charts.map((c) => (c.id === id ? { ...c, ...patch } : c));
 }
 
+export function setAllChartsTimeframe(
+  charts: ChartPanelConfig[],
+  timeframe: string,
+): ChartPanelConfig[] {
+  return charts.map((c) => (c.timeframe === timeframe ? c : { ...c, timeframe }));
+}
+
 export function addChart(
   charts: ChartPanelConfig[],
   template?: Partial<Pick<ChartPanelConfig, 'symbol' | 'timeframe' | 'indicators'>>,
@@ -120,4 +127,14 @@ export function resolveActiveChartId(
 ): ChartId {
   if (activeId && charts.some((c) => c.id === activeId)) return activeId;
   return charts[0]?.id ?? '';
+}
+
+export function collectTickerSymbols(
+  charts: ChartPanelConfig[],
+  watchlist: string[],
+): string[] {
+  const set = new Set<string>();
+  for (const c of charts) set.add(c.symbol.toUpperCase());
+  for (const w of watchlist) set.add(w.toUpperCase());
+  return [...set].sort();
 }

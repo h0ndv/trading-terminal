@@ -6,6 +6,7 @@ mod indicators;
 mod market;
 
 use market::stream_manager::StreamManagerState;
+use market::ticker_manager::TickerManagerState;
 use tauri::Manager;
 use tracing_subscriber::EnvFilter;
 
@@ -24,13 +25,15 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .setup(|app| {
             let handle = app.handle().clone();
-            app.manage(StreamManagerState::new(handle));
+            app.manage(StreamManagerState::new(handle.clone()));
+            app.manage(TickerManagerState::new(handle));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_historical,
             commands::list_symbols,
             commands::sync_chart_streams,
+            commands::sync_ticker_symbols,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

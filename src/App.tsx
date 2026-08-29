@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { LayoutGrid, Plus, X } from 'lucide-react';
+import { LayoutGrid, Link2, Plus, Unlink, X } from 'lucide-react';
 
 import './App.css';
 
@@ -22,11 +22,15 @@ import Dialog from './components/ui/Dialog';
 
 import LayoutMenu from './components/LayoutMenu';
 
+import TickerBar from './components/TickerBar';
+
 import ThemePicker from './components/ThemePicker';
 
 import SymbolPicker, { useSymbolCatalog } from './components/SymbolPicker';
 
 import Watchlist from './components/Watchlist';
+
+import { useTicker } from './hooks/useTicker';
 
 import {
   DEFAULT_DRAWING_STYLE,
@@ -59,7 +63,7 @@ import {
   type ThemeMode,
 } from './lib/theme';
 
-import { syncChartStreams, toStreamSubscriptions } from './lib/tauriBridge';
+import { syncChartStreams, syncTickerSymbols, toStreamSubscriptions } from './lib/tauriBridge';
 
 import type { SymbolInfo } from './lib/types';
 
@@ -67,9 +71,11 @@ import { toggleWatchlist } from './lib/watchlist';
 
 import {
   addChart,
+  collectTickerSymbols,
   MAX_CHARTS,
   removeChart,
   resolveActiveChartId,
+  setAllChartsTimeframe,
   updateChart,
   type ChartId,
   type ChartPanelConfig,
@@ -123,6 +129,8 @@ function App() {
   const [favoriteTools, setFavoriteTools] = useState<DrawingToolId[]>([]);
 
   const [favoritesBarVisible, setFavoritesBarVisible] = useState(true);
+
+  const [syncTimeframe, setSyncTimeframe] = useState(DEFAULT_SETTINGS.syncTimeframe);
 
   const [themeId, setThemeId] = useState(DEFAULT_SETTINGS.themeId);
 
@@ -189,6 +197,8 @@ function App() {
 
     setFavoritesBarVisible(s.favoritesBarVisible);
 
+    setSyncTimeframe(s.syncTimeframe);
+
     setThemeId(s.themeId);
 
     setThemeMode(s.themeMode);
@@ -231,6 +241,8 @@ function App() {
       favoriteTools,
 
       favoritesBarVisible,
+
+      syncTimeframe,
 
       themeId,
 
@@ -288,9 +300,30 @@ function App() {
     setCharts((list) => updateChart(list, activeChart.id, patch));
   }
 
+  function onSelectTimeframe(tf: string) {
+    setActiveTool(null);
+    if (syncTimeframe) {
+      setCharts((list) => setAllChartsTimeframe(list, tf));
+    } else {
+      patchActiveChart({ timeframe: tf });
+    }
+  }
+
+  function onToggleSyncTimeframe() {
+    setSyncTimeframe((prev) => {
+      const next = !prev;
+      if (next && activeChart) {
+        setCharts((list) => setAllChartsTimeframe(list, activeChart.timeframe));
+      }
+      return next;
+    });
+  }
+
   function onAddChart() {
     setCharts((list) => {
-      const next = addChart(list);
+      const template =
+        syncTimeframe && activeChart ? { timeframe: activeChart.timeframe } : undefined;
+      const next = addChart(list, template);
 
       const added = next[next.length - 1];
 
@@ -363,6 +396,14 @@ function App() {
   useEffect(() => {
     if (!hydrated) return;
 
+    syncTickerSymbols(collectTickerSymbols(charts, watchlist)).catch((e) =>
+      console.error('sync_ticker_symbols failed', e),
+    );
+  }, [hydrated, charts, watchlist]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
     saveSettings(getCurrentSettings());
   }, [
     hydrated,
@@ -384,6 +425,8 @@ function App() {
     favoriteTools,
 
     favoritesBarVisible,
+
+    syncTimeframe,
 
     themeId,
 
@@ -435,6 +478,8 @@ function App() {
 
     [symbols, symbol],
   );
+
+  const ticker = useTicker(symbol);
 
   function onSelectSymbol(info: SymbolInfo) {
     setActiveTool(null);
@@ -601,6 +646,14 @@ function App() {
             </span>
           )}
 
+          {activeInfo && (
+            <TickerBar
+              stats={ticker}
+              pricePrecision={activeInfo.price_precision}
+              quoteAsset={activeInfo.quote}
+            />
+          )}
+
           <div className="intervals" role="group" aria-label="Interval">
             {VALID_INTERVALS.map((tf) => (
               <button
@@ -610,15 +663,31 @@ function App() {
 
                 className={tf === timeframe ? 'interval-btn active' : 'interval-btn'}
 
-                onClick={() => {
-                  setActiveTool(null);
-
-                  patchActiveChart({ timeframe: tf });
-                }}
+                onClick={() => onSelectTimeframe(tf)}
               >
                 {tf}
               </button>
             ))}
+            <button
+              type="button"
+              className={
+                syncTimeframe ? 'interval-sync-btn active' : 'interval-sync-btn'
+              }
+              title={
+                syncTimeframe
+                  ? 'Timeframe synced across charts'
+                  : 'Sync timeframe across charts'
+              }
+              aria-label={
+                syncTimeframe
+                  ? 'Timeframe synced across charts'
+                  : 'Sync timeframe across charts'
+              }
+              aria-pressed={syncTimeframe}
+              onClick={onToggleSyncTimeframe}
+            >
+              {syncTimeframe ? <Link2 size={14} /> : <Unlink size={14} />}
+            </button>
           </div>
 
           <div className="chart-workspace-controls" role="group" aria-label="Charts">

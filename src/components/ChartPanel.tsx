@@ -1,5 +1,7 @@
 import ChartView, { type IndicatorFeatureAction } from './Chart';
+import CompactTicker from './CompactTicker';
 import { useChartStream } from '../hooks/useChartStream';
+import { useTicker } from '../hooks/useTicker';
 import {
   type DrawingSnapshot,
   type DrawingStyle,
@@ -52,6 +54,7 @@ export default function ChartPanel({
   onDrawingSelect,
 }: Props) {
   const stream = useChartStream(chart.symbol, chart.timeframe);
+  const ticker = useTicker(chart.symbol);
 
   return (
     <div
@@ -64,6 +67,7 @@ export default function ChartPanel({
         <span className="chart-panel-label">
           {chart.symbol} · {chart.timeframe}
         </span>
+        <CompactTicker stats={ticker} pricePrecision={pricePrecision} variant="panel" />
       </div>
       <div className="chart-panel-body">
         <ChartView

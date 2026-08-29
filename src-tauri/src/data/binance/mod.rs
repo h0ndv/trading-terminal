@@ -1,7 +1,9 @@
 pub mod rest;
+pub mod ticker;
 pub mod ws;
 
 pub use rest::{fetch_klines, fetch_symbols};
+pub use ticker::{fetch_ticker_24h, run_combined_ticker_stream, run_ticker_stream};
 pub use ws::{run_kline_stream, StreamConfig};
 
 /// Map UI timeframe labels to Binance interval strings.
