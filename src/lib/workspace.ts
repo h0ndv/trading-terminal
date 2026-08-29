@@ -1,4 +1,5 @@
 import { DEFAULT_INDICATORS, normalizeIndicators, type IndicatorConfig } from './indicators';
+import type { IndicatorSubscription } from './types';
 
 export const VALID_INTERVALS = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'] as const;
 
@@ -137,4 +138,24 @@ export function collectTickerSymbols(
   for (const c of charts) set.add(c.symbol.toUpperCase());
   for (const w of watchlist) set.add(w.toUpperCase());
   return [...set].sort();
+}
+
+export function collectIndicatorSubscriptions(
+  charts: ChartPanelConfig[],
+): IndicatorSubscription[] {
+  const subs: IndicatorSubscription[] = [];
+  for (const chart of charts) {
+    for (const ind of chart.indicators) {
+      if (!ind.enabled) continue;
+      subs.push({
+        chart_id: chart.id,
+        instance_id: ind.instanceId,
+        symbol: chart.symbol,
+        timeframe: chart.timeframe,
+        indicator_id: ind.id,
+        calc_params: ind.calcParams,
+      });
+    }
+  }
+  return subs;
 }

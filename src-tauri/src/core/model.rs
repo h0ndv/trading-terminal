@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Candle {
@@ -45,6 +46,56 @@ pub struct CandleUpdateEvent {
     pub symbol: String,
     pub timeframe: String,
     pub candle: Candle,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IndicatorPoint {
+    pub timestamp: i64,
+    pub values: HashMap<String, Option<f64>>,
+}
+
+impl IndicatorPoint {
+    pub fn empty(timestamp: i64) -> Self {
+        Self {
+            timestamp,
+            values: HashMap::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IndicatorSeries {
+    pub indicator_id: String,
+    pub calc_params: Vec<f64>,
+    pub points: Vec<IndicatorPoint>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IndicatorSubscription {
+    pub chart_id: String,
+    pub instance_id: String,
+    pub symbol: String,
+    pub timeframe: String,
+    pub indicator_id: String,
+    pub calc_params: Vec<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IndicatorBootstrapEvent {
+    pub chart_id: String,
+    pub instance_id: String,
+    pub symbol: String,
+    pub timeframe: String,
+    pub series: IndicatorSeries,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IndicatorPatchEvent {
+    pub chart_id: String,
+    pub instance_id: String,
+    pub symbol: String,
+    pub timeframe: String,
+    pub point: IndicatorPoint,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,6 +1,8 @@
 use crate::core::model::{CandleUpdateEvent, ChartStreamSubscription};
 use crate::data::binance::{self, StreamConfig};
 use crate::events::emit_candle_update;
+use crate::market::candle_store::CandleStoreState;
+use crate::market::indicator_manager::{notify_candles_changed, IndicatorManagerState};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::AppHandle;
@@ -32,14 +34,22 @@ struct ActiveStream {
 
 pub struct StreamManager {
     app: AppHandle,
+    candle_store: CandleStoreState,
+    indicator_manager: IndicatorManagerState,
     streams: HashMap<StreamKey, ActiveStream>,
     chart_bindings: HashMap<String, StreamKey>,
 }
 
 impl StreamManager {
-    pub fn new(app: AppHandle) -> Self {
+    pub fn new(
+        app: AppHandle,
+        candle_store: CandleStoreState,
+        indicator_manager: IndicatorManagerState,
+    ) -> Self {
         Self {
             app,
+            candle_store,
+            indicator_manager,
             streams: HashMap::new(),
             chart_bindings: HashMap::new(),
         }
@@ -91,6 +101,8 @@ impl StreamManager {
         let app = self.app.clone();
         let timeframe = key.timeframe.clone();
         let symbol = key.symbol.clone();
+        let candle_store = self.candle_store.clone();
+        let indicator_manager = self.indicator_manager.clone();
 
         tauri::async_runtime::spawn(async move {
             binance::run_kline_stream(cfg, tx, cancel_rx).await;
@@ -98,6 +110,10 @@ impl StreamManager {
 
         tauri::async_runtime::spawn(async move {
             while let Some(candle) = rx.recv().await {
+                if let Ok(mut store) = candle_store.0.lock() {
+                    store.append_or_update(&symbol, &timeframe, candle.clone());
+                }
+                notify_candles_changed(&indicator_manager, &symbol, &timeframe, false);
                 let event = CandleUpdateEvent {
                     symbol: symbol.clone(),
                     timeframe: timeframe.clone(),
@@ -149,8 +165,16 @@ impl StreamManager {
 pub struct StreamManagerState(pub Mutex<StreamManager>);
 
 impl StreamManagerState {
-    pub fn new(app: AppHandle) -> Self {
-        Self(Mutex::new(StreamManager::new(app)))
+    pub fn new(
+        app: AppHandle,
+        candle_store: CandleStoreState,
+        indicator_manager: IndicatorManagerState,
+    ) -> Self {
+        Self(Mutex::new(StreamManager::new(
+            app,
+            candle_store,
+            indicator_manager,
+        )))
     }
 }
 

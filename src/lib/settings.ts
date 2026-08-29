@@ -31,7 +31,7 @@ export { VALID_INTERVALS } from './workspace';
 export type QuickBarPos = { x: number; y: number };
 
 export type AppSettings = {
-  version: 6;
+  version: 7;
   charts: ChartPanelConfig[];
   activeChartId: ChartId;
   workspaceLayout: WorkspaceLayout | null;
@@ -61,7 +61,7 @@ const defaultCharts = (): ChartPanelConfig[] => [
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  version: 6,
+  version: 7,
   charts: defaultCharts(),
   activeChartId: '',
   workspaceLayout: null,
@@ -130,7 +130,7 @@ function migrateFromLegacy(partial: LegacySettings): {
 export function normalizeSettings(partial: Partial<AppSettings> & LegacySettings): AppSettings {
   const migrated = migrateFromLegacy(partial);
   return {
-    version: 6,
+    version: 7,
     charts: migrated.charts,
     activeChartId: migrated.activeChartId,
     workspaceLayout: migrated.workspaceLayout,
@@ -186,7 +186,7 @@ export async function loadSettings(): Promise<AppSettings> {
     const themeMode = await store.get<ThemeMode>('themeMode');
 
     return normalizeSettings({
-      version: version === 6 ? 6 : undefined,
+      version: version === 7 || version === 6 ? 7 : undefined,
       charts: charts ?? undefined,
       activeChartId: activeChartId ?? undefined,
       workspaceLayout: workspaceLayout ?? undefined,

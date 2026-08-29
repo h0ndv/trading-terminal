@@ -6,6 +6,7 @@ export type IndicatorParamMode = 'fixed' | 'variable';
 
 export type IndicatorConfig = {
   id: BuiltinIndicatorId;
+  instanceId: string;
   enabled: boolean;
   visible: boolean;
   calcParams: number[];
@@ -135,14 +136,14 @@ export const INDICATOR_META: Record<BuiltinIndicatorId, IndicatorMeta> = {
 };
 
 export const DEFAULT_INDICATORS: IndicatorConfig[] = [
-  { id: 'EMA', enabled: true, visible: true, calcParams: [21, 55, 200] },
-  { id: 'MA', enabled: false, visible: true, calcParams: [5, 10, 30, 60] },
-  { id: 'BOLL', enabled: false, visible: true, calcParams: [20, 2] },
-  { id: 'VOL', enabled: true, visible: true, calcParams: [5, 10, 20] },
-  { id: 'MACD', enabled: true, visible: true, calcParams: [12, 26, 9] },
-  { id: 'RSI', enabled: true, visible: true, calcParams: [14] },
-  { id: 'CCI', enabled: false, visible: true, calcParams: [20] },
-  { id: 'KDJ', enabled: false, visible: true, calcParams: [9, 3, 3] },
+  { id: 'EMA', instanceId: 'ema-default', enabled: true, visible: true, calcParams: [21, 55, 200] },
+  { id: 'MA', instanceId: 'ma-default', enabled: false, visible: true, calcParams: [5, 10, 30, 60] },
+  { id: 'BOLL', instanceId: 'boll-default', enabled: false, visible: true, calcParams: [20, 2] },
+  { id: 'VOL', instanceId: 'vol-default', enabled: true, visible: true, calcParams: [5, 10, 20] },
+  { id: 'MACD', instanceId: 'macd-default', enabled: true, visible: true, calcParams: [12, 26, 9] },
+  { id: 'RSI', instanceId: 'rsi-default', enabled: true, visible: true, calcParams: [14] },
+  { id: 'CCI', instanceId: 'cci-default', enabled: false, visible: true, calcParams: [20] },
+  { id: 'KDJ', instanceId: 'kdj-default', enabled: false, visible: true, calcParams: [9, 3, 3] },
 ];
 
 function isBuiltinId(raw: unknown): raw is BuiltinIndicatorId {
@@ -197,6 +198,11 @@ function normalizeCalcParams(id: BuiltinIndicatorId, raw: unknown): number[] {
   return out;
 }
 
+function ensureInstanceId(raw: unknown, id: BuiltinIndicatorId): string {
+  if (typeof raw === 'string' && raw.trim().length > 0) return raw.trim();
+  return `${id.toLowerCase()}-${crypto.randomUUID()}`;
+}
+
 export function normalizeIndicators(raw: unknown): IndicatorConfig[] {
   const seen = new Set<BuiltinIndicatorId>();
   const ordered: IndicatorConfig[] = [];
@@ -209,6 +215,7 @@ export function normalizeIndicators(raw: unknown): IndicatorConfig[] {
       seen.add(rec.id);
       ordered.push({
         id: rec.id,
+        instanceId: ensureInstanceId(rec.instanceId, rec.id),
         enabled: Boolean(rec.enabled),
         visible: rec.visible === undefined ? true : Boolean(rec.visible),
         calcParams: normalizeCalcParams(rec.id, rec.calcParams),
@@ -221,6 +228,7 @@ export function normalizeIndicators(raw: unknown): IndicatorConfig[] {
     const d = DEFAULT_INDICATORS.find((x) => x.id === id)!;
     ordered.push({
       id,
+      instanceId: d.instanceId,
       enabled: d.enabled,
       visible: d.visible,
       calcParams: [...d.calcParams],

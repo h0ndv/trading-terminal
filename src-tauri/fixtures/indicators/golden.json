@@ -1,0 +1,250 @@
+{
+  "cases": [
+    {
+      "indicator_id": "MA",
+      "calc_params": [
+        5.0,
+        10.0
+      ],
+      "points": [
+        {
+          "timestamp": 1009,
+          "values": {
+            "ma1": 108.0,
+            "ma2": 105.5
+          }
+        },
+        {
+          "timestamp": 1024,
+          "values": {
+            "ma2": 120.5,
+            "ma1": 123.0
+          }
+        },
+        {
+          "timestamp": 1034,
+          "values": {
+            "ma1": 133.0,
+            "ma2": 130.5
+          }
+        }
+      ]
+    },
+    {
+      "indicator_id": "EMA",
+      "calc_params": [
+        9.0,
+        21.0
+      ],
+      "points": [
+        {
+          "timestamp": 1009,
+          "values": {
+            "ema1": 106.0,
+            "ema2": null
+          }
+        },
+        {
+          "timestamp": 1024,
+          "values": {
+            "ema2": 114.99999999999999,
+            "ema1": 121.00000000000003
+          }
+        },
+        {
+          "timestamp": 1034,
+          "values": {
+            "ema2": 124.99999999999997,
+            "ema1": 131.00000000000003
+          }
+        }
+      ]
+    },
+    {
+      "indicator_id": "BOLL",
+      "calc_params": [
+        20.0,
+        2.0
+      ],
+      "points": [
+        {
+          "timestamp": 1009,
+          "values": {
+            "upper": null,
+            "mid": null,
+            "lower": null
+          }
+        },
+        {
+          "timestamp": 1024,
+          "values": {
+            "lower": 103.9674374053292,
+            "mid": 115.5,
+            "upper": 127.0325625946708
+          }
+        },
+        {
+          "timestamp": 1034,
+          "values": {
+            "upper": 137.0325625946708,
+            "mid": 125.5,
+            "lower": 113.9674374053292
+          }
+        }
+      ]
+    },
+    {
+      "indicator_id": "VOL",
+      "calc_params": [
+        5.0,
+        10.0
+      ],
+      "points": [
+        {
+          "timestamp": 1009,
+          "values": {
+            "ma1": 1700.0,
+            "ma2": 1450.0,
+            "vol": 1900.0
+          }
+        },
+        {
+          "timestamp": 1024,
+          "values": {
+            "vol": 3400.0,
+            "ma1": 3200.0,
+            "ma2": 2950.0
+          }
+        },
+        {
+          "timestamp": 1034,
+          "values": {
+            "ma2": 3950.0,
+            "vol": 4400.0,
+            "ma1": 4200.0
+          }
+        }
+      ]
+    },
+    {
+      "indicator_id": "MACD",
+      "calc_params": [
+        12.0,
+        26.0,
+        9.0
+      ],
+      "points": [
+        {
+          "timestamp": 1009,
+          "values": {
+            "macd": null,
+            "dif": null,
+            "dea": null
+          }
+        },
+        {
+          "timestamp": 1024,
+          "values": {
+            "dea": null,
+            "macd": null,
+            "dif": null
+          }
+        },
+        {
+          "timestamp": 1034,
+          "values": {
+            "dea": 7.000000000000001,
+            "dif": 7.0,
+            "macd": -1.7763568394002505e-15
+          }
+        }
+      ]
+    },
+    {
+      "indicator_id": "RSI",
+      "calc_params": [
+        14.0
+      ],
+      "points": [
+        {
+          "timestamp": 1009,
+          "values": {
+            "rsi1": null
+          }
+        },
+        {
+          "timestamp": 1024,
+          "values": {
+            "rsi1": 100.0
+          }
+        },
+        {
+          "timestamp": 1034,
+          "values": {
+            "rsi1": 100.0
+          }
+        }
+      ]
+    },
+    {
+      "indicator_id": "CCI",
+      "calc_params": [
+        20.0
+      ],
+      "points": [
+        {
+          "timestamp": 1009,
+          "values": {
+            "cci": null
+          }
+        },
+        {
+          "timestamp": 1024,
+          "values": {
+            "cci": 126.66666666666667
+          }
+        },
+        {
+          "timestamp": 1034,
+          "values": {
+            "cci": 126.66666666666663
+          }
+        }
+      ]
+    },
+    {
+      "indicator_id": "KDJ",
+      "calc_params": [
+        9.0,
+        3.0,
+        3.0
+      ],
+      "points": [
+        {
+          "timestamp": 1009,
+          "values": {
+            "d": 90.9090909090909,
+            "k": 90.9090909090909,
+            "j": 90.90909090909093
+          }
+        },
+        {
+          "timestamp": 1024,
+          "values": {
+            "d": 90.9090909090909,
+            "k": 90.9090909090909,
+            "j": 90.90909090909093
+          }
+        },
+        {
+          "timestamp": 1034,
+          "values": {
+            "j": 90.90909090909093,
+            "d": 90.9090909090909,
+            "k": 90.9090909090909
+          }
+        }
+      ]
+    }
+  ]
+}

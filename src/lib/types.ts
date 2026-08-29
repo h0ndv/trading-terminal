@@ -37,3 +37,39 @@ export interface TickerStats {
   volume: number;
   quote_volume: number;
 }
+
+export interface IndicatorPoint {
+  timestamp: number;
+  values: Record<string, number | null>;
+}
+
+export interface IndicatorSeries {
+  indicator_id: string;
+  calc_params: number[];
+  points: IndicatorPoint[];
+}
+
+export interface IndicatorSubscription {
+  chart_id: string;
+  instance_id: string;
+  symbol: string;
+  timeframe: string;
+  indicator_id: string;
+  calc_params: number[];
+}
+
+export interface IndicatorBootstrapEvent {
+  chart_id: string;
+  instance_id: string;
+  symbol: string;
+  timeframe: string;
+  series: IndicatorSeries;
+}
+
+export interface IndicatorPatchEvent {
+  chart_id: string;
+  instance_id: string;
+  symbol: string;
+  timeframe: string;
+  point: IndicatorPoint;
+}

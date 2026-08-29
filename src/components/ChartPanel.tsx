@@ -71,6 +71,7 @@ export default function ChartPanel({
       </div>
       <div className="chart-panel-body">
         <ChartView
+          chartId={chart.id}
           symbol={chart.symbol}
           timeframe={chart.timeframe}
           pricePrecision={pricePrecision}

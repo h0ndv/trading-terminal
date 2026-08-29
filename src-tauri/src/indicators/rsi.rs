@@ -1,72 +1,85 @@
 use crate::core::model::Candle;
+use crate::indicators::incremental::WilderRsiState;
+use crate::indicators::traits::{Indicator, IndicatorState};
+use crate::indicators::types::{IndicatorError, IndicatorId, IndicatorPoint, IndicatorSeries};
 
-/// Wilder RSI on close. Returns `None` until `period` gains/losses available.
-pub fn rsi(candles: &[Candle], period: usize) -> Vec<Option<f64>> {
-    let mut out = vec![None; candles.len()];
-    if period == 0 || candles.len() <= period {
-        return out;
+pub struct RsiIndicator;
+
+impl Indicator for RsiIndicator {
+    fn id(&self) -> IndicatorId {
+        IndicatorId::new("RSI")
     }
 
-    let mut avg_gain = 0.0;
-    let mut avg_loss = 0.0;
-    for i in 1..=period {
-        let diff = candles[i].close - candles[i - 1].close;
-        if diff >= 0.0 {
-            avg_gain += diff;
-        } else {
-            avg_loss -= diff;
+    fn validate_params(&self, params: &[f64]) -> Result<(), IndicatorError> {
+        if params.is_empty() || params.iter().any(|p| *p < 1.0) {
+            return Err(IndicatorError::InvalidParams {
+                id: "RSI".into(),
+                reason: "need at least one period >= 1".into(),
+            });
         }
-    }
-    avg_gain /= period as f64;
-    avg_loss /= period as f64;
-
-    out[period] = Some(rsi_from_avgs(avg_gain, avg_loss));
-
-    for i in (period + 1)..candles.len() {
-        let diff = candles[i].close - candles[i - 1].close;
-        let (gain, loss) = if diff >= 0.0 {
-            (diff, 0.0)
-        } else {
-            (0.0, -diff)
-        };
-        avg_gain = (avg_gain * (period as f64 - 1.0) + gain) / period as f64;
-        avg_loss = (avg_loss * (period as f64 - 1.0) + loss) / period as f64;
-        out[i] = Some(rsi_from_avgs(avg_gain, avg_loss));
+        Ok(())
     }
 
-    out
-}
-
-fn rsi_from_avgs(avg_gain: f64, avg_loss: f64) -> f64 {
-    if avg_loss == 0.0 {
-        return 100.0;
-    }
-    let rs = avg_gain / avg_loss;
-    100.0 - (100.0 / (1.0 + rs))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::model::Candle;
-
-    fn candle(close: f64) -> Candle {
-        Candle {
-            timestamp: 0,
-            open: close,
-            high: close,
-            low: close,
-            close,
-            volume: 1.0,
+    fn compute_all(&self, candles: &[Candle], params: &[f64]) -> IndicatorSeries {
+        let mut states: Vec<WilderRsiState> = params
+            .iter()
+            .enumerate()
+            .map(|(i, p)| WilderRsiState::new(*p as usize, figure_key(i)))
+            .collect();
+        let points = candles
+            .iter()
+            .map(|c| {
+                let mut merged = IndicatorPoint::empty(c.timestamp);
+                for state in &mut states {
+                    let pt = state.on_candle(c.timestamp, c);
+                    merged.values.extend(pt.values);
+                }
+                merged
+            })
+            .collect();
+        IndicatorSeries {
+            indicator_id: "RSI".into(),
+            calc_params: params.to_vec(),
+            points,
         }
     }
 
-    #[test]
-    fn rsi_flat_is_neutral_or_undefined_early() {
-        let data: Vec<_> = (0..20).map(|_| candle(100.0)).collect();
-        let r = rsi(&data, 14);
-        assert!(r[14].is_some());
-        // all flat after seed → gain=0 loss=0 → treated as 100 in Wilder edge
-        assert!(r[19].unwrap() >= 0.0 && r[19].unwrap() <= 100.0);
+    fn create_state(&self, params: &[f64]) -> Result<Box<dyn IndicatorState>, IndicatorError> {
+        self.validate_params(params)?;
+        Ok(Box::new(RsiState {
+            states: params
+                .iter()
+                .enumerate()
+                .map(|(i, p)| WilderRsiState::new(*p as usize, figure_key(i)))
+                .collect(),
+        }))
     }
+}
+
+struct RsiState {
+    states: Vec<WilderRsiState>,
+}
+
+impl IndicatorState for RsiState {
+    fn on_candle(
+        &mut self,
+        _index: usize,
+        candle: &Candle,
+        _prev: Option<&Candle>,
+    ) -> IndicatorPoint {
+        let mut merged = IndicatorPoint::empty(candle.timestamp);
+        for state in &mut self.states {
+            let pt = state.on_candle(candle.timestamp, candle);
+            merged.values.extend(pt.values);
+        }
+        merged
+    }
+
+    fn warmup_len(&self) -> usize {
+        self.states.iter().map(|s| s.period()).max().unwrap_or(0)
+    }
+}
+
+pub fn figure_key(index: usize) -> String {
+    format!("rsi{}", index + 1)
 }

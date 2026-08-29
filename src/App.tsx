@@ -63,7 +63,12 @@ import {
   type ThemeMode,
 } from './lib/theme';
 
-import { syncChartStreams, syncTickerSymbols, toStreamSubscriptions } from './lib/tauriBridge';
+import {
+  syncChartStreams,
+  syncIndicatorSubscriptions,
+  syncTickerSymbols,
+  toStreamSubscriptions,
+} from './lib/tauriBridge';
 
 import type { SymbolInfo } from './lib/types';
 
@@ -71,6 +76,7 @@ import { toggleWatchlist } from './lib/watchlist';
 
 import {
   addChart,
+  collectIndicatorSubscriptions,
   collectTickerSymbols,
   MAX_CHARTS,
   removeChart,
@@ -222,7 +228,7 @@ function App() {
 
   function getCurrentSettings(): AppSettings {
     return {
-      version: 6,
+      version: 7,
 
       charts,
 
@@ -400,6 +406,14 @@ function App() {
       console.error('sync_ticker_symbols failed', e),
     );
   }, [hydrated, charts, watchlist]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    syncIndicatorSubscriptions(collectIndicatorSubscriptions(charts)).catch((e) =>
+      console.error('sync_indicator_subscriptions failed', e),
+    );
+  }, [hydrated, charts]);
 
   useEffect(() => {
     if (!hydrated) return;

@@ -17,6 +17,11 @@ import {
   type BuiltinIndicatorId,
   type IndicatorConfig,
 } from '../lib/indicators';
+import { rustIndicatorInstanceKey } from '../lib/klineRustIndicators';
+import {
+  subscribeIndicatorBootstrap,
+  subscribeIndicatorPatch,
+} from '../lib/marketStream';
 import { INDICATOR_FEATURE, indicatorTooltipFeatures } from '../lib/tooltipFeatures';
 import { toKLineStyles, type ThemeTokens } from '../lib/theme';
 import type { Candle } from '../lib/types';
@@ -24,6 +29,7 @@ import type { Candle } from '../lib/types';
 export type IndicatorFeatureAction = 'visible' | 'settings' | 'close';
 
 type Props = {
+  chartId: string;
   symbol: string;
   timeframe: string;
   pricePrecision: number;
@@ -183,6 +189,7 @@ function syncDrawingOverrides(chart: Chart, drawings: DrawingSnapshot[]) {
 
 function syncIndicators(
   chart: Chart,
+  chartId: string,
   configs: IndicatorConfig[],
   applied: Map<BuiltinIndicatorId, Applied>,
   lastOrderKey: { current: string },
@@ -220,6 +227,7 @@ function syncIndicators(
           calcParams: cfg.calcParams,
           paneId: meta.paneId,
           visible,
+          extendData: rustIndicatorInstanceKey(chartId, cfg.instanceId),
         },
         meta.stackOnCandle,
       );
@@ -235,6 +243,7 @@ function syncIndicators(
           name: cfg.id,
           ...(paramsChanged ? { calcParams: cfg.calcParams } : {}),
           ...(visibleChanged ? { visible } : {}),
+          extendData: rustIndicatorInstanceKey(chartId, cfg.instanceId),
         });
         applied.set(cfg.id, {
           calcParams: [...cfg.calcParams],
@@ -246,6 +255,7 @@ function syncIndicators(
 }
 
 export default function ChartView({
+  chartId,
   symbol,
   timeframe,
   pricePrecision,
@@ -432,8 +442,29 @@ export default function ChartView({
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
-    syncIndicators(chart, indicators, appliedRef.current, orderKeyRef);
-  }, [indicators, symbol, timeframe, pricePrecision, volumePrecision]);
+    syncIndicators(chart, chartId, indicators, appliedRef.current, orderKeyRef);
+  }, [chartId, indicators, symbol, timeframe, pricePrecision, volumePrecision]);
+
+  useEffect(() => {
+    const refresh = () => {
+      const chart = chartRef.current;
+      if (!chart) return;
+      for (const cfg of indicators) {
+        if (!cfg.enabled) continue;
+        chart.overrideIndicator({
+          name: cfg.id,
+          calcParams: cfg.calcParams,
+          extendData: rustIndicatorInstanceKey(chartId, cfg.instanceId),
+        });
+      }
+    };
+    const offBootstrap = subscribeIndicatorBootstrap(chartId, refresh);
+    const offPatch = subscribeIndicatorPatch(chartId, refresh);
+    return () => {
+      offBootstrap();
+      offPatch();
+    };
+  }, [chartId, indicators]);
 
   useEffect(() => {
     const chart = chartRef.current;

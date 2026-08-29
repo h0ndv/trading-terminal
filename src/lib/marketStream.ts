@@ -1,6 +1,19 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { Candle, CandleUpdateEvent, ChartStreamSubscription, SymbolInfo, TickerStats } from './types';
+import type {
+  Candle,
+  CandleUpdateEvent,
+  ChartStreamSubscription,
+  IndicatorBootstrapEvent,
+  IndicatorPatchEvent,
+  IndicatorSubscription,
+  SymbolInfo,
+  TickerStats,
+} from './types';
+import {
+  setRustIndicatorBootstrap,
+  setRustIndicatorPatch,
+} from './klineRustIndicators';
 
 export function getHistorical(
   symbol: string,
@@ -82,6 +95,102 @@ export function toStreamSubscriptions(charts: ChartStreamSync[]): ChartStreamSub
 
 export function syncTickerSymbols(symbols: string[]): Promise<void> {
   return invoke('sync_ticker_symbols', { symbols });
+}
+
+export function syncIndicatorSubscriptions(
+  subscriptions: IndicatorSubscription[],
+): Promise<void> {
+  return invoke('sync_indicator_subscriptions', { subscriptions });
+}
+
+type IndicatorBootstrapCallback = (event: IndicatorBootstrapEvent) => void;
+type IndicatorPatchCallback = (event: IndicatorPatchEvent) => void;
+
+const indicatorBootstrapListeners = new Map<string, Set<IndicatorBootstrapCallback>>();
+const indicatorPatchListeners = new Map<string, Set<IndicatorPatchCallback>>();
+let indicatorUnlistenBootstrap: UnlistenFn | null = null;
+let indicatorUnlistenPatch: UnlistenFn | null = null;
+let indicatorSubscriberCount = 0;
+
+async function ensureIndicatorListeners(): Promise<void> {
+  if (!indicatorUnlistenBootstrap) {
+    indicatorUnlistenBootstrap = await listen<IndicatorBootstrapEvent>(
+      'indicator-bootstrap',
+      (event) => {
+        const ev = event.payload;
+        setRustIndicatorBootstrap(ev.chart_id, ev.instance_id, ev.series.points);
+        indicatorBootstrapListeners.get(ev.chart_id)?.forEach((cb) => cb(ev));
+      },
+    );
+  }
+  if (!indicatorUnlistenPatch) {
+    indicatorUnlistenPatch = await listen<IndicatorPatchEvent>(
+      'indicator-patch',
+      (event) => {
+        const ev = event.payload;
+        setRustIndicatorPatch(ev.chart_id, ev.instance_id, ev.point);
+        indicatorPatchListeners.get(ev.chart_id)?.forEach((cb) => cb(ev));
+      },
+    );
+  }
+}
+
+export function subscribeIndicatorBootstrap(
+  chartId: string,
+  callback: IndicatorBootstrapCallback,
+): () => void {
+  let set = indicatorBootstrapListeners.get(chartId);
+  if (!set) {
+    set = new Set();
+    indicatorBootstrapListeners.set(chartId, set);
+  }
+  set.add(callback);
+  indicatorSubscriberCount += 1;
+  void ensureIndicatorListeners();
+
+  return () => {
+    const bucket = indicatorBootstrapListeners.get(chartId);
+    if (!bucket) return;
+    bucket.delete(callback);
+    if (bucket.size === 0) indicatorBootstrapListeners.delete(chartId);
+    indicatorSubscriberCount -= 1;
+    if (indicatorSubscriberCount <= 0) {
+      void indicatorUnlistenBootstrap?.();
+      void indicatorUnlistenPatch?.();
+      indicatorUnlistenBootstrap = null;
+      indicatorUnlistenPatch = null;
+      indicatorSubscriberCount = 0;
+    }
+  };
+}
+
+export function subscribeIndicatorPatch(
+  chartId: string,
+  callback: IndicatorPatchCallback,
+): () => void {
+  let set = indicatorPatchListeners.get(chartId);
+  if (!set) {
+    set = new Set();
+    indicatorPatchListeners.set(chartId, set);
+  }
+  set.add(callback);
+  indicatorSubscriberCount += 1;
+  void ensureIndicatorListeners();
+
+  return () => {
+    const bucket = indicatorPatchListeners.get(chartId);
+    if (!bucket) return;
+    bucket.delete(callback);
+    if (bucket.size === 0) indicatorPatchListeners.delete(chartId);
+    indicatorSubscriberCount -= 1;
+    if (indicatorSubscriberCount <= 0) {
+      void indicatorUnlistenBootstrap?.();
+      void indicatorUnlistenPatch?.();
+      indicatorUnlistenBootstrap = null;
+      indicatorUnlistenPatch = null;
+      indicatorSubscriberCount = 0;
+    }
+  };
 }
 
 type TickerCallback = (stats: TickerStats) => void;
