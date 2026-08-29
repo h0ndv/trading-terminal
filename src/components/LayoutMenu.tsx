@@ -137,8 +137,8 @@ export default function LayoutMenu({
         confirmLabel="Import"
       >
         <p style={{ margin: 0, color: "var(--muted-foreground)" }}>
-          This will replace your current workspace (symbol, timeframe,
-          indicators, drawings, watchlist, and theme).
+          This will replace your current workspace (charts, drawings,
+          watchlist, and theme).
         </p>
       </Dialog>
 

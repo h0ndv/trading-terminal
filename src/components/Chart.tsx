@@ -7,7 +7,7 @@ import {
   type Overlay,
   type Period,
 } from "klinecharts";
-import type { CandleHandlers } from "../hooks/useCandleStream";
+import type { CandleHandlers } from "../hooks/useChartStream";
 import {
   USER_DRAWING_GROUP,
   snapshotFromOverlay,

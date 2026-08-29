@@ -29,7 +29,7 @@ bun run tauri build
 - **History**: REST `GET /api/v3/klines` via `get_historical` (pages of up to 1000 bars; scroll-back loads older via `endTime`).
 - **Live**: WebSocket `{symbol}@kline_{interval}` → Tauri event `candle-update` → chart `subscribeBar`.
 - **Catalog**: `list_symbols` → `GET /api/v3/exchangeInfo` (TRADING pairs, cached in-process).
-- **Symbol / interval**: header typeahead + TF buttons call `set_stream`; Rust reconnects WS via a `watch` channel.
+- **Symbol / interval**: header typeahead + TF buttons update the active chart panel; `sync_chart_streams` keeps one WS per `(symbol, TF)` with refcount.
 - **Persistence**: last symbol/TF restored on launch via `@tauri-apps/plugin-store` (`settings.json` in the app data dir).
 
 The kline WS alone cannot fill the chart; REST + WS is the standard terminal pattern.

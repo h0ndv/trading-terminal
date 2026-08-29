@@ -23,25 +23,25 @@ import {
   DEFAULT_WATCHLIST,
   normalizeWatchlist,
 } from "./watchlist";
+import {
+  createChartPanel,
+  normalizeCharts,
+  normalizeWorkspaceLayout,
+  resolveActiveChartId,
+  type ChartId,
+  type ChartPanelConfig,
+  type WorkspaceLayout,
+} from "./workspace";
 
-export const VALID_INTERVALS = [
-  "1m",
-  "5m",
-  "15m",
-  "30m",
-  "1h",
-  "4h",
-  "1d",
-  "1w",
-] as const;
+export { VALID_INTERVALS } from "./workspace";
 
 export type QuickBarPos = { x: number; y: number };
 
 export type AppSettings = {
-  version: 5;
-  symbol: string;
-  timeframe: string;
-  indicators: IndicatorConfig[];
+  version: 6;
+  charts: ChartPanelConfig[];
+  activeChartId: ChartId;
+  workspaceLayout: WorkspaceLayout | null;
   drawingsBySymbol: Record<string, DrawingSnapshot[]>;
   watchlist: string[];
   quickBarPos: QuickBarPos | null;
@@ -62,14 +62,15 @@ export type LayoutExport = {
   settings: AppSettings;
 };
 
+const defaultCharts = (): ChartPanelConfig[] => [
+  createChartPanel("BTCUSDT", "1m", DEFAULT_INDICATORS),
+];
+
 export const DEFAULT_SETTINGS: AppSettings = {
-  version: 5,
-  symbol: "BTCUSDT",
-  timeframe: "1m",
-  indicators: DEFAULT_INDICATORS.map((d) => ({
-    ...d,
-    calcParams: [...d.calcParams],
-  })),
+  version: 6,
+  charts: defaultCharts(),
+  activeChartId: "",
+  workspaceLayout: null,
   drawingsBySymbol: {},
   watchlist: [...DEFAULT_WATCHLIST],
   quickBarPos: null,
@@ -79,6 +80,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   themeId: DEFAULT_THEME_ID,
   themeMode: DEFAULT_THEME_MODE,
 };
+
+DEFAULT_SETTINGS.activeChartId = DEFAULT_SETTINGS.charts[0]!.id;
 
 export function normalizeQuickBarPos(raw: unknown): QuickBarPos | null {
   if (!raw || typeof raw !== "object") return null;
@@ -91,29 +94,54 @@ export function normalizeQuickBarPos(raw: unknown): QuickBarPos | null {
   return { x: Math.round(x), y: Math.round(y) };
 }
 
-const store = new LazyStore("settings.json", { autoSave: 200 });
+type LegacySettings = {
+  version?: number;
+  symbol?: string;
+  timeframe?: string;
+  indicators?: IndicatorConfig[];
+  charts?: ChartPanelConfig[];
+  activeChartId?: string;
+  workspaceLayout?: WorkspaceLayout | null;
+};
 
-function normalizeSymbol(raw: unknown): string {
-  if (typeof raw !== "string") return DEFAULT_SETTINGS.symbol;
-  const s = raw.trim().toUpperCase();
-  return s.length > 0 ? s : DEFAULT_SETTINGS.symbol;
-}
+function migrateFromLegacy(partial: LegacySettings): {
+  charts: ChartPanelConfig[];
+  activeChartId: string;
+  workspaceLayout: WorkspaceLayout | null;
+} {
+  const charts = normalizeCharts(partial.charts);
+  if (charts.length > 0) {
+    return {
+      charts,
+      activeChartId: resolveActiveChartId(charts, partial.activeChartId),
+      workspaceLayout: normalizeWorkspaceLayout(partial.workspaceLayout),
+    };
+  }
 
-function normalizeTimeframe(raw: unknown): string {
-  if (typeof raw !== "string") return DEFAULT_SETTINGS.timeframe;
-  return (VALID_INTERVALS as readonly string[]).includes(raw)
-    ? raw
-    : DEFAULT_SETTINGS.timeframe;
-}
-
-export function normalizeSettings(partial: Partial<AppSettings>): AppSettings {
+  const symbol =
+    typeof partial.symbol === "string" && partial.symbol.trim().length > 0
+      ? partial.symbol.trim().toUpperCase()
+      : "BTCUSDT";
+  const timeframe =
+    typeof partial.timeframe === "string" ? partial.timeframe : "1m";
+  const indicators = normalizeIndicators(
+    partial.indicators ?? DEFAULT_INDICATORS,
+  );
+  const panel = createChartPanel(symbol, timeframe, indicators);
   return {
-    version: 5,
-    symbol: normalizeSymbol(partial.symbol),
-    timeframe: normalizeTimeframe(partial.timeframe),
-    indicators: normalizeIndicators(
-      partial.indicators ?? DEFAULT_SETTINGS.indicators,
-    ),
+    charts: [panel],
+    activeChartId: panel.id,
+    workspaceLayout: null,
+  };
+}
+
+export function normalizeSettings(partial: Partial<AppSettings> & LegacySettings): AppSettings {
+  const migrated = migrateFromLegacy(partial);
+  return {
+    version: 6,
+    charts: migrated.charts,
+    activeChartId: migrated.activeChartId,
+    workspaceLayout: migrated.workspaceLayout,
     drawingsBySymbol: normalizeDrawingsBySymbol(
       partial.drawingsBySymbol ?? DEFAULT_SETTINGS.drawingsBySymbol,
     ),
@@ -148,8 +176,16 @@ export function normalizeSettings(partial: Partial<AppSettings>): AppSettings {
   };
 }
 
+const store = new LazyStore("settings.json", { autoSave: 200 });
+
 export async function loadSettings(): Promise<AppSettings> {
   try {
+    const version = await store.get<number>("version");
+    const charts = await store.get<ChartPanelConfig[]>("charts");
+    const activeChartId = await store.get<string>("activeChartId");
+    const workspaceLayout = await store.get<WorkspaceLayout | null>(
+      "workspaceLayout",
+    );
     const symbol = await store.get<string>("symbol");
     const timeframe = await store.get<string>("timeframe");
     const indicators = await store.get<IndicatorConfig[]>("indicators");
@@ -167,29 +203,30 @@ export async function loadSettings(): Promise<AppSettings> {
     );
     const themeId = await store.get<string>("themeId");
     const themeMode = await store.get<ThemeMode>("themeMode");
+
     return normalizeSettings({
-      symbol: symbol ?? DEFAULT_SETTINGS.symbol,
-      timeframe: timeframe ?? DEFAULT_SETTINGS.timeframe,
-      indicators: indicators ?? DEFAULT_SETTINGS.indicators,
-      drawingsBySymbol:
-        drawingsBySymbol ?? DEFAULT_SETTINGS.drawingsBySymbol,
-      watchlist: watchlist ?? DEFAULT_SETTINGS.watchlist,
-      quickBarPos: quickBarPos ?? DEFAULT_SETTINGS.quickBarPos,
-      favoritesBarPos: favoritesBarPos ?? DEFAULT_SETTINGS.favoritesBarPos,
-      favoriteTools: favoriteTools ?? DEFAULT_SETTINGS.favoriteTools,
-      favoritesBarVisible:
-        favoritesBarVisible ?? DEFAULT_SETTINGS.favoritesBarVisible,
-      themeId: themeId ?? DEFAULT_SETTINGS.themeId,
-      themeMode: themeMode ?? DEFAULT_SETTINGS.themeMode,
+      version: version === 6 ? 6 : undefined,
+      charts: charts ?? undefined,
+      activeChartId: activeChartId ?? undefined,
+      workspaceLayout: workspaceLayout ?? undefined,
+      symbol: symbol ?? undefined,
+      timeframe: timeframe ?? undefined,
+      indicators: indicators ?? undefined,
+      drawingsBySymbol: drawingsBySymbol ?? undefined,
+      watchlist: watchlist ?? undefined,
+      quickBarPos: quickBarPos ?? undefined,
+      favoritesBarPos: favoritesBarPos ?? undefined,
+      favoriteTools: favoriteTools ?? undefined,
+      favoritesBarVisible: favoritesBarVisible ?? undefined,
+      themeId: themeId ?? undefined,
+      themeMode: themeMode ?? undefined,
     });
   } catch (e) {
     console.error("loadSettings failed", e);
     return {
       ...DEFAULT_SETTINGS,
-      indicators: DEFAULT_SETTINGS.indicators.map((d) => ({
-        ...d,
-        calcParams: [...d.calcParams],
-      })),
+      charts: defaultCharts(),
+      activeChartId: defaultCharts()[0]!.id,
       drawingsBySymbol: {},
       watchlist: [...DEFAULT_WATCHLIST],
       quickBarPos: null,
@@ -200,30 +237,13 @@ export async function loadSettings(): Promise<AppSettings> {
   }
 }
 
-export async function saveSettings(
-  partial: Partial<
-    Pick<
-      AppSettings,
-      | "symbol"
-      | "timeframe"
-      | "indicators"
-      | "drawingsBySymbol"
-      | "watchlist"
-      | "quickBarPos"
-      | "favoritesBarPos"
-      | "favoriteTools"
-      | "favoritesBarVisible"
-      | "themeId"
-      | "themeMode"
-    >
-  >,
-): Promise<void> {
+export async function saveSettings(partial: Partial<AppSettings>): Promise<void> {
   try {
     const next = normalizeSettings(partial);
     await store.set("version", next.version);
-    await store.set("symbol", next.symbol);
-    await store.set("timeframe", next.timeframe);
-    await store.set("indicators", next.indicators);
+    await store.set("charts", next.charts);
+    await store.set("activeChartId", next.activeChartId);
+    await store.set("workspaceLayout", next.workspaceLayout);
     await store.set("drawingsBySymbol", next.drawingsBySymbol);
     await store.set("watchlist", next.watchlist);
     await store.set("quickBarPos", next.quickBarPos);
@@ -255,7 +275,7 @@ export function parseLayoutImport(raw: unknown): AppSettings | null {
   const settingsRaw =
     obj.kind === LAYOUT_EXPORT_KIND ? obj.settings : obj;
   if (!settingsRaw || typeof settingsRaw !== "object") return null;
-  return normalizeSettings(settingsRaw as Partial<AppSettings>);
+  return normalizeSettings(settingsRaw as Partial<AppSettings> & LegacySettings);
 }
 
 function layoutDefaultFilename(): string {
@@ -301,7 +321,10 @@ if (import.meta.env.DEV) {
   const roundTrip = parseLayoutImport(
     JSON.parse(serializeLayoutExport(DEFAULT_SETTINGS)),
   );
-  if (!roundTrip || roundTrip.symbol !== DEFAULT_SETTINGS.symbol) {
+  if (
+    !roundTrip ||
+    roundTrip.charts.length !== DEFAULT_SETTINGS.charts.length
+  ) {
     console.error("layout import/export self-check failed");
   }
 }

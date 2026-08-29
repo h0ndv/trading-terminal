@@ -1,7 +1,7 @@
-use crate::core::model::{Candle, SymbolInfo};
-use crate::data::binance::{self, StreamConfig};
+use crate::core::model::{Candle, ChartStreamSubscription, SymbolInfo};
+use crate::data::binance;
+use crate::market::stream_manager::StreamManagerState;
 use tauri::State;
-use tokio::sync::watch;
 
 #[tauri::command]
 pub async fn get_historical(
@@ -29,22 +29,12 @@ pub async fn list_symbols() -> Result<Vec<SymbolInfo>, String> {
 }
 
 #[tauri::command]
-pub fn set_stream(
-    config_tx: State<'_, watch::Sender<StreamConfig>>,
-    symbol: String,
-    timeframe: String,
+pub fn sync_chart_streams(
+    manager: State<'_, StreamManagerState>,
+    subscriptions: Vec<ChartStreamSubscription>,
 ) -> Result<(), String> {
-    let interval = binance::to_interval(&timeframe).to_string();
-    let symbol = symbol.to_uppercase();
-    let cfg = StreamConfig::new(symbol.clone(), interval.clone());
-    tracing::info!(%symbol, %interval, "set_stream");
-    let _ = config_tx.send_if_modified(|current| {
-        if *current == cfg {
-            false
-        } else {
-            *current = cfg;
-            true
-        }
-    });
+    tracing::info!(count = subscriptions.len(), "sync_chart_streams");
+    let mut guard = manager.0.lock().map_err(|e| e.to_string())?;
+    guard.sync(subscriptions);
     Ok(())
 }

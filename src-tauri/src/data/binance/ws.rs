@@ -57,28 +57,56 @@ fn parse_candle(k: &KlinePayload) -> Result<Candle> {
     })
 }
 
-/// Run kline stream; reconnects on error and when `config_rx` changes.
-pub async fn run_stream(mut config_rx: watch::Receiver<StreamConfig>, tx: mpsc::Sender<Candle>) {
+enum StopReason {
+    Cancelled,
+    Closed,
+}
+
+/// Run kline stream for a single key; reconnects until cancelled.
+pub async fn run_kline_stream(
+    cfg: StreamConfig,
+    tx: mpsc::Sender<Candle>,
+    mut cancel_rx: watch::Receiver<bool>,
+) {
     let mut backoff_secs: u64 = 1;
     const MAX_BACKOFF: u64 = 30;
 
     loop {
-        let cfg = config_rx.borrow().clone();
-        let url = stream_url(&cfg);
-        tracing::info!(symbol = %cfg.symbol, interval = %cfg.interval, %url, "starting binance ws");
+        if *cancel_rx.borrow() {
+            tracing::info!(
+                symbol = %cfg.symbol,
+                interval = %cfg.interval,
+                "kline stream cancelled"
+            );
+            return;
+        }
 
-        match connect_and_read(&url, &tx, &mut config_rx).await {
-            Ok(ReconnectReason::ConfigChanged) => {
-                tracing::info!("stream config changed; reconnecting");
-                backoff_secs = 1;
-                continue;
-            }
-            Ok(ReconnectReason::Closed) => {
-                tracing::warn!("binance ws closed cleanly; reconnecting");
+        let url = stream_url(&cfg);
+        tracing::info!(
+            symbol = %cfg.symbol,
+            interval = %cfg.interval,
+            %url,
+            "starting binance ws"
+        );
+
+        match connect_and_read(&url, &tx, &mut cancel_rx).await {
+            Ok(StopReason::Cancelled) => return,
+            Ok(StopReason::Closed) => {
+                tracing::warn!(
+                    symbol = %cfg.symbol,
+                    interval = %cfg.interval,
+                    "binance ws closed cleanly; reconnecting"
+                );
                 backoff_secs = 1;
             }
             Err(e) => {
-                tracing::error!(error = %e, backoff_secs, "binance ws error; reconnecting");
+                tracing::error!(
+                    error = %e,
+                    symbol = %cfg.symbol,
+                    interval = %cfg.interval,
+                    backoff_secs,
+                    "binance ws error; reconnecting"
+                );
             }
         }
 
@@ -87,34 +115,26 @@ pub async fn run_stream(mut config_rx: watch::Receiver<StreamConfig>, tx: mpsc::
     }
 }
 
-enum ReconnectReason {
-    ConfigChanged,
-    Closed,
-}
-
 async fn connect_and_read(
     url: &str,
     tx: &mpsc::Sender<Candle>,
-    config_rx: &mut watch::Receiver<StreamConfig>,
-) -> Result<ReconnectReason> {
+    cancel_rx: &mut watch::Receiver<bool>,
+) -> Result<StopReason> {
     tracing::info!(%url, "connecting to binance ws");
-    let (ws, _) = connect_async(url)
-        .await
-        .context("binance ws connect")?;
+    let (ws, _) = connect_async(url).await.context("binance ws connect")?;
     tracing::info!("binance ws connected");
     let (_, mut read) = ws.split();
 
     loop {
         tokio::select! {
-            changed = config_rx.changed() => {
-                if changed.is_err() {
-                    return Err(anyhow!("stream config watch closed"));
+            changed = cancel_rx.changed() => {
+                if changed.is_err() || *cancel_rx.borrow() {
+                    return Ok(StopReason::Cancelled);
                 }
-                return Ok(ReconnectReason::ConfigChanged);
             }
             msg = read.next() => {
                 match msg {
-                    None => return Ok(ReconnectReason::Closed),
+                    None => return Ok(StopReason::Closed),
                     Some(Err(e)) => return Err(e.into()),
                     Some(Ok(Message::Text(text))) => match serde_json::from_str::<KlineEvent>(&text) {
                         Ok(ev) => {
@@ -133,7 +153,7 @@ async fn connect_and_read(
                         Err(e) => tracing::warn!(error = %e, "failed to deserialize kline event"),
                     },
                     Some(Ok(Message::Ping(_) | Message::Pong(_))) => {}
-                    Some(Ok(Message::Close(_))) => return Ok(ReconnectReason::Closed),
+                    Some(Ok(Message::Close(_))) => return Ok(StopReason::Closed),
                     Some(Ok(Message::Binary(_) | Message::Frame(_))) => {}
                 }
             }

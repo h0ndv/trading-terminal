@@ -2,7 +2,7 @@ pub mod rest;
 pub mod ws;
 
 pub use rest::{fetch_klines, fetch_symbols};
-pub use ws::{run_stream, StreamConfig};
+pub use ws::{run_kline_stream, StreamConfig};
 
 /// Map UI timeframe labels to Binance interval strings.
 pub fn to_interval(timeframe: &str) -> &str {

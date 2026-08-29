@@ -32,3 +32,17 @@ pub struct Timeframe {
     /// e.g. "1m", "5m", "1h"
     pub label: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChartStreamSubscription {
+    pub chart_id: String,
+    pub symbol: String,
+    pub timeframe: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CandleUpdateEvent {
+    pub symbol: String,
+    pub timeframe: String,
+    pub candle: Candle,
+}

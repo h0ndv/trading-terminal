@@ -1,3 +1,15 @@
+export interface CandleUpdateEvent {
+  symbol: string;
+  timeframe: string;
+  candle: Candle;
+}
+
+export interface ChartStreamSubscription {
+  chart_id: string;
+  symbol: string;
+  timeframe: string;
+}
+
 export interface Candle {
   timestamp: number;
   open: number;
