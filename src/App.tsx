@@ -12,6 +12,7 @@ import QuickEditBar, {
   type QuickTarget,
 } from "./components/QuickEditBar";
 import Dialog from "./components/ui/Dialog";
+import LayoutMenu from "./components/LayoutMenu";
 import ThemePicker from "./components/ThemePicker";
 import SymbolPicker, { useSymbolCatalog } from "./components/SymbolPicker";
 import Watchlist from "./components/Watchlist";
@@ -37,6 +38,7 @@ import {
   loadSettings,
   saveSettings,
   VALID_INTERVALS,
+  type AppSettings,
   type QuickBarPos,
 } from "./lib/settings";
 import {
@@ -108,6 +110,70 @@ function App() {
   const drawings = drawingsBySymbol[symbol] ?? [];
   const drawingsHidden = drawingsAreHidden(drawings);
 
+  function applyAppSettings(s: AppSettings) {
+    setSymbol(s.symbol);
+    setTimeframe(s.timeframe);
+    setIndicators(s.indicators);
+    setDrawingsBySymbol(s.drawingsBySymbol);
+    setWatchlist(s.watchlist);
+    setQuickBarPos(s.quickBarPos);
+    setFavoritesBarPos(s.favoritesBarPos);
+    setFavoriteTools(s.favoriteTools);
+    setFavoritesBarVisible(s.favoritesBarVisible);
+    setThemeId(s.themeId);
+    setThemeMode(s.themeMode);
+    const tokens = resolveThemeTokens(s.themeId, s.themeMode);
+    setDrawStyle((prev) =>
+      prev.color === DEFAULT_DRAWING_STYLE.color
+        ? { ...prev, color: defaultDrawingColor(tokens) }
+        : prev,
+    );
+    setActiveTool(null);
+    setQuickTarget(null);
+    setConfigTarget(null);
+    setPendingDeleteId(null);
+  }
+
+  function getCurrentSettings(): AppSettings {
+    return {
+      version: 5,
+      symbol,
+      timeframe,
+      indicators,
+      drawingsBySymbol,
+      watchlist,
+      quickBarPos,
+      favoritesBarPos,
+      favoriteTools,
+      favoritesBarVisible,
+      themeId,
+      themeMode,
+    };
+  }
+
+  function onImportLayout(s: AppSettings) {
+    applyAppSettings(s);
+    void saveSettings(s);
+  }
+
+  function onRestoreLayout() {
+    const defaults = {
+      ...DEFAULT_SETTINGS,
+      indicators: DEFAULT_SETTINGS.indicators.map((d) => ({
+        ...d,
+        calcParams: [...d.calcParams],
+      })),
+      drawingsBySymbol: {},
+      watchlist: [...DEFAULT_SETTINGS.watchlist],
+      quickBarPos: null,
+      favoritesBarPos: null,
+      favoriteTools: [],
+      favoritesBarVisible: true,
+    };
+    applyAppSettings(defaults);
+    void saveSettings(defaults);
+  }
+
   useEffect(() => {
     applyThemeToDOM(themeTokens, themeMode);
   }, [themeTokens, themeMode]);
@@ -116,23 +182,7 @@ function App() {
     let cancelled = false;
     loadSettings().then((s) => {
       if (cancelled) return;
-      setSymbol(s.symbol);
-      setTimeframe(s.timeframe);
-      setIndicators(s.indicators);
-      setDrawingsBySymbol(s.drawingsBySymbol);
-      setWatchlist(s.watchlist);
-      setQuickBarPos(s.quickBarPos);
-      setFavoritesBarPos(s.favoritesBarPos);
-      setFavoriteTools(s.favoriteTools);
-      setFavoritesBarVisible(s.favoritesBarVisible);
-      setThemeId(s.themeId);
-      setThemeMode(s.themeMode);
-      const tokens = resolveThemeTokens(s.themeId, s.themeMode);
-      setDrawStyle((prev) =>
-        prev.color === DEFAULT_DRAWING_STYLE.color
-          ? { ...prev, color: defaultDrawingColor(tokens) }
-          : prev,
-      );
+      applyAppSettings(s);
       setHydrated(true);
     });
     return () => {
@@ -358,6 +408,11 @@ function App() {
             value={indicators}
             onChange={setIndicators}
             onOpenSettings={(id) => setQuickTarget({ kind: "indicator", id })}
+          />
+          <LayoutMenu
+            getSettings={getCurrentSettings}
+            onImport={onImportLayout}
+            onRestore={onRestoreLayout}
           />
           <ThemePicker
             themeId={themeId}

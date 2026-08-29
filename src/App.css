@@ -1409,3 +1409,77 @@ body,
 .theme-preset-card.active .theme-preset-label {
   color: var(--foreground);
 }
+
+.layout-menu {
+  position: relative;
+}
+
+.layout-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.layout-menu-toggle:hover,
+.layout-menu-toggle.active {
+  color: var(--foreground);
+  background: var(--secondary);
+  border-color: var(--primary);
+}
+
+.layout-menu-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  width: 200px;
+  padding: 8px;
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.layout-menu-title {
+  margin: 0 0 6px;
+  padding: 0 6px;
+  color: var(--card-foreground);
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.layout-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 6px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.85em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.layout-menu-item:hover {
+  background: var(--secondary);
+}
+
+.layout-menu-item.danger {
+  color: var(--destructive);
+}
+
+.layout-menu-item.danger:hover {
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
+}

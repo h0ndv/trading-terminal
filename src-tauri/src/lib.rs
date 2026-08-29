@@ -24,6 +24,8 @@ pub fn run() {
     let (config_tx, config_rx) = watch::channel(initial);
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(config_tx)

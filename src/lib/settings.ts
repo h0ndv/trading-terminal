@@ -1,4 +1,6 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
+import { save, open } from "@tauri-apps/plugin-dialog";
+import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import {
   normalizeDrawingsBySymbol,
   normalizeFavoriteTools,
@@ -48,6 +50,16 @@ export type AppSettings = {
   favoritesBarVisible: boolean;
   themeId: string;
   themeMode: ThemeMode;
+};
+
+export const LAYOUT_EXPORT_KIND = "trading-terminal-layout" as const;
+export const LAYOUT_EXPORT_VERSION = 1;
+
+export type LayoutExport = {
+  kind: typeof LAYOUT_EXPORT_KIND;
+  exportVersion: typeof LAYOUT_EXPORT_VERSION;
+  exportedAt: string;
+  settings: AppSettings;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -223,5 +235,73 @@ export async function saveSettings(
     await store.save();
   } catch (e) {
     console.error("saveSettings failed", e);
+  }
+}
+
+export function serializeLayoutExport(settings: AppSettings): string {
+  const envelope: LayoutExport = {
+    kind: LAYOUT_EXPORT_KIND,
+    exportVersion: LAYOUT_EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    settings: normalizeSettings(settings),
+  };
+  return JSON.stringify(envelope, null, 2);
+}
+
+export function parseLayoutImport(raw: unknown): AppSettings | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  if (obj.kind !== undefined && obj.kind !== LAYOUT_EXPORT_KIND) return null;
+  const settingsRaw =
+    obj.kind === LAYOUT_EXPORT_KIND ? obj.settings : obj;
+  if (!settingsRaw || typeof settingsRaw !== "object") return null;
+  return normalizeSettings(settingsRaw as Partial<AppSettings>);
+}
+
+function layoutDefaultFilename(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return `trading-terminal-layout-${stamp}.json`;
+}
+
+export async function exportLayoutToFile(
+  settings: AppSettings,
+): Promise<boolean> {
+  const path = await save({
+    filters: [{ name: "Layout", extensions: ["json"] }],
+    defaultPath: layoutDefaultFilename(),
+  });
+  if (!path) return false;
+  await writeTextFile(path, serializeLayoutExport(settings));
+  return true;
+}
+
+export async function importLayoutFromFile(): Promise<
+  | { ok: true; settings: AppSettings }
+  | { ok: false; reason: "cancelled" | "invalid" }
+> {
+  const path = await open({
+    multiple: false,
+    filters: [{ name: "Layout", extensions: ["json"] }],
+  });
+  if (!path || Array.isArray(path)) return { ok: false, reason: "cancelled" };
+  try {
+    const text = await readTextFile(path);
+    const settings = parseLayoutImport(JSON.parse(text));
+    if (!settings) return { ok: false, reason: "invalid" };
+    return { ok: true, settings };
+  } catch (e) {
+    console.error("importLayoutFromFile failed", e);
+    return { ok: false, reason: "invalid" };
+  }
+}
+
+if (import.meta.env.DEV) {
+  const roundTrip = parseLayoutImport(
+    JSON.parse(serializeLayoutExport(DEFAULT_SETTINGS)),
+  );
+  if (!roundTrip || roundTrip.symbol !== DEFAULT_SETTINGS.symbol) {
+    console.error("layout import/export self-check failed");
   }
 }
