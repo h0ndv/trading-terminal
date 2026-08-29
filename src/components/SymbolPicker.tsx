@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { IconStar } from "./DrawingToolIcons";
-import { listSymbols } from "../lib/tauriBridge";
-import type { SymbolInfo } from "../lib/types";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { IconStar } from './DrawingToolIcons';
+import { listSymbols } from '../lib/tauriBridge';
+import type { SymbolInfo } from '../lib/types';
 
 type Props = {
   value: string;
@@ -36,8 +36,8 @@ export default function SymbolPicker({
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
   const filtered = useMemo(() => {
@@ -62,12 +62,12 @@ export default function SymbolPicker({
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Escape") {
+    if (e.key === 'Escape') {
       setOpen(false);
       setQuery(value);
       return;
     }
-    if (e.key === "Enter" && filtered.length > 0) {
+    if (e.key === 'Enter' && filtered.length > 0) {
       e.preventDefault();
       pick(filtered[0]);
     }
@@ -83,7 +83,7 @@ export default function SymbolPicker({
         aria-autocomplete="list"
         autoComplete="off"
         spellCheck={false}
-        placeholder={loading ? "Loading…" : "Symbol"}
+        placeholder={loading ? 'Loading…' : 'Symbol'}
         disabled={loading && symbols.length === 0}
         onFocus={() => setOpen(true)}
         onChange={(e) => {
@@ -103,11 +103,7 @@ export default function SymbolPicker({
                 <li key={s.ticker} className="symbol-option-row">
                   <button
                     type="button"
-                    className={
-                      s.ticker === value
-                        ? "symbol-option active"
-                        : "symbol-option"
-                    }
+                    className={s.ticker === value ? 'symbol-option active' : 'symbol-option'}
                     role="option"
                     aria-selected={s.ticker === value}
                     onClick={() => pick(s)}
@@ -119,14 +115,10 @@ export default function SymbolPicker({
                   </button>
                   <button
                     type="button"
-                    className={
-                      fav ? "symbol-watch-btn active" : "symbol-watch-btn"
-                    }
-                    title={fav ? "Remove from watchlist" : "Add to watchlist"}
+                    className={fav ? 'symbol-watch-btn active' : 'symbol-watch-btn'}
+                    title={fav ? 'Remove from watchlist' : 'Add to watchlist'}
                     aria-label={
-                      fav
-                        ? `Remove ${s.ticker} from watchlist`
-                        : `Add ${s.ticker} to watchlist`
+                      fav ? `Remove ${s.ticker} from watchlist` : `Add ${s.ticker} to watchlist`
                     }
                     aria-pressed={fav}
                     onClick={(e) => {
@@ -164,7 +156,7 @@ export function useSymbolCatalog() {
       .catch((e) => {
         if (!cancelled) {
           setError(String(e));
-          console.error("list_symbols failed", e);
+          console.error('list_symbols failed', e);
         }
       })
       .finally(() => {

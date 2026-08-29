@@ -1,13 +1,6 @@
-import { useEffect, useRef } from "react";
-import {
-  init,
-  dispose,
-  type Chart,
-  type KLineData,
-  type Overlay,
-  type Period,
-} from "klinecharts";
-import type { CandleHandlers } from "../hooks/useChartStream";
+import { useEffect, useRef } from 'react';
+import { init, dispose, type Chart, type KLineData, type Overlay, type Period } from 'klinecharts';
+import type { CandleHandlers } from '../hooks/useChartStream';
 import {
   USER_DRAWING_GROUP,
   snapshotFromOverlay,
@@ -17,21 +10,18 @@ import {
   type DrawingStyle,
   type DrawingToolId,
   type OverlayMagnetMode,
-} from "../lib/drawings";
+} from '../lib/drawings';
 import {
   INDICATOR_META,
   calcParamsEqual,
   type BuiltinIndicatorId,
   type IndicatorConfig,
-} from "../lib/indicators";
-import {
-  INDICATOR_FEATURE,
-  indicatorTooltipFeatures,
-} from "../lib/tooltipFeatures";
-import { toKLineStyles, type ThemeTokens } from "../lib/theme";
-import type { Candle } from "../lib/types";
+} from '../lib/indicators';
+import { INDICATOR_FEATURE, indicatorTooltipFeatures } from '../lib/tooltipFeatures';
+import { toKLineStyles, type ThemeTokens } from '../lib/theme';
+import type { Candle } from '../lib/types';
 
-export type IndicatorFeatureAction = "visible" | "settings" | "close";
+export type IndicatorFeatureAction = 'visible' | 'settings' | 'close';
 
 type Props = {
   symbol: string;
@@ -50,10 +40,7 @@ type Props = {
   drawings: DrawingSnapshot[];
   onDrawingsChange: (next: DrawingSnapshot[]) => void;
   onActiveToolConsumed: () => void;
-  onIndicatorFeature: (
-    id: BuiltinIndicatorId,
-    action: IndicatorFeatureAction,
-  ) => void;
+  onIndicatorFeature: (id: BuiltinIndicatorId, action: IndicatorFeatureAction) => void;
   onOpenDrawingSettings: (id: string) => void;
   onDrawingSelect: (id: string | null) => void;
 };
@@ -67,28 +54,28 @@ function enabledOrderKey(configs: IndicatorConfig[]): string {
   return configs
     .filter((c) => c.enabled)
     .map((c) => c.id)
-    .join(",");
+    .join(',');
 }
 
 function toPeriod(timeframe: string): Period {
   switch (timeframe) {
-    case "5m":
-      return { span: 5, type: "minute" };
-    case "15m":
-      return { span: 15, type: "minute" };
-    case "30m":
-      return { span: 30, type: "minute" };
-    case "1h":
-      return { span: 1, type: "hour" };
-    case "4h":
-      return { span: 4, type: "hour" };
-    case "1d":
-      return { span: 1, type: "day" };
-    case "1w":
-      return { span: 1, type: "week" };
-    case "1m":
+    case '5m':
+      return { span: 5, type: 'minute' };
+    case '15m':
+      return { span: 15, type: 'minute' };
+    case '30m':
+      return { span: 30, type: 'minute' };
+    case '1h':
+      return { span: 1, type: 'hour' };
+    case '4h':
+      return { span: 4, type: 'hour' };
+    case '1d':
+      return { span: 1, type: 'day' };
+    case '1w':
+      return { span: 1, type: 'week' };
+    case '1m':
     default:
-      return { span: 1, type: "minute" };
+      return { span: 1, type: 'minute' };
   }
 }
 
@@ -122,13 +109,13 @@ function attachDrawingLifecycle(
   onSelect: (id: string | null) => void,
 ): Pick<
   Overlay,
-  | "onDrawEnd"
-  | "onRemoved"
-  | "onPressedMoveEnd"
-  | "onDoubleClick"
-  | "onSelected"
-  | "onDeselected"
-  | "onRightClick"
+  | 'onDrawEnd'
+  | 'onRemoved'
+  | 'onPressedMoveEnd'
+  | 'onDoubleClick'
+  | 'onSelected'
+  | 'onDeselected'
+  | 'onRightClick'
 > {
   return {
     onDrawEnd: () => emit(),
@@ -173,7 +160,7 @@ function restoreDrawings(
       })),
       lock: snap.lock,
       visible: snap.visible ?? true,
-      mode: snap.mode ?? "normal",
+      mode: snap.mode ?? 'normal',
       extendData: snap.extendData,
       styles: snap.styles ? toOverlayStyles(snap.styles) : undefined,
       ...attachDrawingLifecycle(emit, onOpenSettings, onSelect),
@@ -187,7 +174,7 @@ function syncDrawingOverrides(chart: Chart, drawings: DrawingSnapshot[]) {
       id: snap.id,
       visible: snap.visible ?? true,
       lock: snap.lock ?? false,
-      mode: snap.mode ?? "normal",
+      mode: snap.mode ?? 'normal',
       extendData: snap.extendData,
       styles: snap.styles ? toOverlayStyles(snap.styles) : undefined,
     });
@@ -202,9 +189,7 @@ function syncIndicators(
 ) {
   const nextKey = enabledOrderKey(configs);
   const orderChanged =
-    lastOrderKey.current !== "" &&
-    lastOrderKey.current !== nextKey &&
-    applied.size > 0;
+    lastOrderKey.current !== '' && lastOrderKey.current !== nextKey && applied.size > 0;
 
   if (orderChanged) {
     for (const id of [...applied.keys()]) {
@@ -285,7 +270,7 @@ export default function ChartView({
   const chartRef = useRef<Chart | null>(null);
   const pushBarRef = useRef<((data: KLineData) => void) | null>(null);
   const appliedRef = useRef(new Map<BuiltinIndicatorId, Applied>());
-  const orderKeyRef = useRef("");
+  const orderKeyRef = useRef('');
   const drawingsRestoredRef = useRef(false);
   const streamRef = useRef(stream);
   streamRef.current = stream;
@@ -315,8 +300,8 @@ export default function ChartView({
   }
 
   function applyChartTheme(chart: Chart, tokens: ThemeTokens) {
-    const up = tokens["candle-up"];
-    const down = tokens["candle-down"];
+    const up = tokens['candle-up'];
+    const down = tokens['candle-down'];
     const themed = toKLineStyles(tokens);
     // Candle bar first so merge can't be skipped by a partial tooltip-only path.
     chart.setStyles({
@@ -324,19 +309,19 @@ export default function ChartView({
         bar: {
           upColor: up,
           downColor: down,
-          noChangeColor: tokens["muted-foreground"],
+          noChangeColor: tokens['muted-foreground'],
           upBorderColor: up,
           downBorderColor: down,
-          noChangeBorderColor: tokens["muted-foreground"],
+          noChangeBorderColor: tokens['muted-foreground'],
           upWickColor: up,
           downWickColor: down,
-          noChangeWickColor: tokens["muted-foreground"],
+          noChangeWickColor: tokens['muted-foreground'],
         },
         priceMark: {
           last: {
             upColor: up,
             downColor: down,
-            noChangeColor: tokens["muted-foreground"],
+            noChangeColor: tokens['muted-foreground'],
           },
         },
       },
@@ -357,16 +342,16 @@ export default function ChartView({
     const el = containerRef.current;
     if (!el) return;
 
-    const chart = init(el, { styles: "dark" });
+    const chart = init(el, { styles: 'dark' });
     if (!chart) return;
     chartRef.current = chart;
     appliedRef.current = new Map();
-    orderKeyRef.current = "";
+    orderKeyRef.current = '';
     drawingsRestoredRef.current = false;
 
     applyChartTheme(chart, themeTokensRef.current);
 
-    chart.subscribeAction("onIndicatorTooltipFeatureClick", (data) => {
+    chart.subscribeAction('onIndicatorTooltipFeatureClick', (data) => {
       const payload = data as {
         feature?: { id?: string };
         indicator?: { name?: string };
@@ -376,23 +361,22 @@ export default function ChartView({
       if (!featureId || !name || !isBuiltinId(name)) return;
 
       if (featureId === INDICATOR_FEATURE.visible) {
-        onIndicatorFeatureRef.current(name, "visible");
+        onIndicatorFeatureRef.current(name, 'visible');
       } else if (featureId === INDICATOR_FEATURE.settings) {
-        onIndicatorFeatureRef.current(name, "settings");
+        onIndicatorFeatureRef.current(name, 'settings');
       } else if (featureId === INDICATOR_FEATURE.close) {
-        onIndicatorFeatureRef.current(name, "close");
+        onIndicatorFeatureRef.current(name, 'close');
       }
     });
 
     chart.setDataLoader({
       getBars: async ({ type, timestamp, callback }) => {
-        if (type === "backward" || type === "update") {
+        if (type === 'backward' || type === 'update') {
           callback([], { forward: true, backward: false });
           return;
         }
         try {
-          const endTime =
-            type === "forward" && timestamp != null ? timestamp - 1 : undefined;
+          const endTime = type === 'forward' && timestamp != null ? timestamp - 1 : undefined;
           const bars = await streamRef.current.getBars(symbol, timeframe, {
             endTime,
           });
@@ -401,7 +385,7 @@ export default function ChartView({
             backward: false,
           });
         } catch (e) {
-          console.error("getBars failed", e);
+          console.error('getBars failed', e);
           callback([], { forward: false, backward: false });
         }
       },
@@ -425,14 +409,14 @@ export default function ChartView({
     });
 
     const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
+    window.addEventListener('resize', onResize);
 
     return () => {
       offCandle();
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener('resize', onResize);
       pushBarRef.current = null;
       appliedRef.current = new Map();
-      orderKeyRef.current = "";
+      orderKeyRef.current = '';
       drawingsRestoredRef.current = false;
       dispose(chart);
       chartRef.current = null;
@@ -455,10 +439,8 @@ export default function ChartView({
     const chart = chartRef.current;
     if (!chart) return;
 
-    const openSettings = (id: string) =>
-      onOpenDrawingSettingsRef.current(id);
-    const onSelect = (id: string | null) =>
-      onDrawingSelectRef.current(id);
+    const openSettings = (id: string) => onOpenDrawingSettingsRef.current(id);
+    const onSelect = (id: string | null) => onDrawingSelectRef.current(id);
 
     if (drawings.length === 0) {
       chart.removeOverlay({ groupId: USER_DRAWING_GROUP });
@@ -468,13 +450,7 @@ export default function ChartView({
 
     const existing = chart.getOverlays({ groupId: USER_DRAWING_GROUP });
     if (existing.length === 0 && !drawingsRestoredRef.current) {
-      restoreDrawings(
-        chart,
-        drawings,
-        () => emitDrawings(chart),
-        openSettings,
-        onSelect,
-      );
+      restoreDrawings(chart, drawings, () => emitDrawings(chart), openSettings, onSelect);
       drawingsRestoredRef.current = true;
       return;
     }
@@ -495,7 +471,7 @@ export default function ChartView({
     if (!chart || !activeTool) return;
 
     const style = drawStyleRef.current;
-    const text = annotationTextRef.current.trim() || "Note";
+    const text = annotationTextRef.current.trim() || 'Note';
 
     chart.createOverlay({
       name: activeTool,
@@ -532,10 +508,6 @@ export default function ChartView({
   }, [activeTool, symbol, timeframe, pricePrecision, volumePrecision]);
 
   return (
-    <div
-      ref={containerRef}
-      className="chart-root"
-      style={{ width: "100%", height: "100%" }}
-    />
+    <div ref={containerRef} className="chart-root" style={{ width: '100%', height: '100%' }} />
   );
 }

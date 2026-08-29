@@ -34,7 +34,7 @@
   --sidebar-ring: #58a6ff;
   --candle-up: #3fb950;
   --candle-down: #f85149;
-  font-family: "Segoe UI", "IBM Plex Sans", system-ui, sans-serif;
+  font-family: 'Segoe UI', 'IBM Plex Sans', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.4;
   font-weight: 400;
@@ -935,13 +935,13 @@ body,
   transition: background 0.15s ease;
 }
 
-.chart-resize-handle[data-orientation="vertical"] {
+.chart-resize-handle[data-orientation='vertical'] {
   width: auto;
   height: 4px;
 }
 
 .chart-resize-handle:hover,
-.chart-resize-handle[data-separator="active"] {
+.chart-resize-handle[data-separator='active'] {
   background: var(--primary);
 }
 
@@ -1303,8 +1303,8 @@ body,
   font-size: 0.85em;
 }
 
-.dialog-field input[type="text"],
-.dialog-field input[type="number"],
+.dialog-field input[type='text'],
+.dialog-field input[type='number'],
 .dialog-field select {
   margin: 0;
   padding: 6px 8px;

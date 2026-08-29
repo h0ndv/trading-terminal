@@ -1,19 +1,6 @@
-import {
-  DEFAULT_INDICATORS,
-  normalizeIndicators,
-  type IndicatorConfig,
-} from "./indicators";
+import { DEFAULT_INDICATORS, normalizeIndicators, type IndicatorConfig } from './indicators';
 
-export const VALID_INTERVALS = [
-  "1m",
-  "5m",
-  "15m",
-  "30m",
-  "1h",
-  "4h",
-  "1d",
-  "1w",
-] as const;
+export const VALID_INTERVALS = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'] as const;
 
 export type ChartId = string;
 
@@ -31,8 +18,8 @@ export type WorkspaceLayout = {
 
 export const MAX_CHARTS = 4;
 
-export const DEFAULT_SYMBOL = "BTCUSDT";
-export const DEFAULT_TIMEFRAME = "1m";
+export const DEFAULT_SYMBOL = 'BTCUSDT';
+export const DEFAULT_TIMEFRAME = '1m';
 
 function cloneIndicators(list: IndicatorConfig[]): IndicatorConfig[] {
   return list.map((d) => ({ ...d, calcParams: [...d.calcParams] }));
@@ -56,17 +43,16 @@ export function createChartPanel(
 }
 
 export function normalizeChartPanel(raw: unknown): ChartPanelConfig | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
-  const id = typeof r.id === "string" && r.id.length > 0 ? r.id : null;
+  const id = typeof r.id === 'string' && r.id.length > 0 ? r.id : null;
   if (!id) return null;
   const symbol =
-    typeof r.symbol === "string" && r.symbol.trim().length > 0
+    typeof r.symbol === 'string' && r.symbol.trim().length > 0
       ? r.symbol.trim().toUpperCase()
       : DEFAULT_SYMBOL;
   const timeframe =
-    typeof r.timeframe === "string" &&
-    (VALID_INTERVALS as readonly string[]).includes(r.timeframe)
+    typeof r.timeframe === 'string' && (VALID_INTERVALS as readonly string[]).includes(r.timeframe)
       ? r.timeframe
       : DEFAULT_TIMEFRAME;
   const indicators = normalizeIndicators(
@@ -77,29 +63,23 @@ export function normalizeChartPanel(raw: unknown): ChartPanelConfig | null {
 
 export function normalizeCharts(raw: unknown): ChartPanelConfig[] {
   if (!Array.isArray(raw) || raw.length === 0) return [];
-  const charts = raw
-    .map(normalizeChartPanel)
-    .filter((c): c is ChartPanelConfig => c != null);
+  const charts = raw.map(normalizeChartPanel).filter((c): c is ChartPanelConfig => c != null);
   return charts.length > 0 ? charts : [];
 }
 
 export function normalizeWorkspaceLayout(raw: unknown): WorkspaceLayout | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
   const panelGroupId =
-    typeof r.panelGroupId === "string" && r.panelGroupId.length > 0
-      ? r.panelGroupId
-      : null;
+    typeof r.panelGroupId === 'string' && r.panelGroupId.length > 0 ? r.panelGroupId : null;
   if (!panelGroupId) return null;
   const defaultLayout =
-    r.defaultLayout && typeof r.defaultLayout === "object"
+    r.defaultLayout && typeof r.defaultLayout === 'object'
       ? Object.fromEntries(
-          Object.entries(r.defaultLayout as Record<string, unknown>).flatMap(
-            ([k, v]) => {
-              const n = Number(v);
-              return Number.isFinite(n) ? [[k, n]] : [];
-            },
-          ),
+          Object.entries(r.defaultLayout as Record<string, unknown>).flatMap(([k, v]) => {
+            const n = Number(v);
+            return Number.isFinite(n) ? [[k, n]] : [];
+          }),
         )
       : {};
   return { panelGroupId, defaultLayout };
@@ -108,14 +88,14 @@ export function normalizeWorkspaceLayout(raw: unknown): WorkspaceLayout | null {
 export function updateChart(
   charts: ChartPanelConfig[],
   id: ChartId,
-  patch: Partial<Pick<ChartPanelConfig, "symbol" | "timeframe" | "indicators">>,
+  patch: Partial<Pick<ChartPanelConfig, 'symbol' | 'timeframe' | 'indicators'>>,
 ): ChartPanelConfig[] {
   return charts.map((c) => (c.id === id ? { ...c, ...patch } : c));
 }
 
 export function addChart(
   charts: ChartPanelConfig[],
-  template?: Partial<Pick<ChartPanelConfig, "symbol" | "timeframe" | "indicators">>,
+  template?: Partial<Pick<ChartPanelConfig, 'symbol' | 'timeframe' | 'indicators'>>,
 ): ChartPanelConfig[] {
   if (charts.length >= MAX_CHARTS) return charts;
   const source = charts[charts.length - 1];
@@ -129,10 +109,7 @@ export function addChart(
   ];
 }
 
-export function removeChart(
-  charts: ChartPanelConfig[],
-  id: ChartId,
-): ChartPanelConfig[] {
+export function removeChart(charts: ChartPanelConfig[], id: ChartId): ChartPanelConfig[] {
   if (charts.length <= 1) return charts;
   return charts.filter((c) => c.id !== id);
 }
@@ -142,5 +119,5 @@ export function resolveActiveChartId(
   activeId: string | null | undefined,
 ): ChartId {
   if (activeId && charts.some((c) => c.id === activeId)) return activeId;
-  return charts[0]?.id ?? "";
+  return charts[0]?.id ?? '';
 }

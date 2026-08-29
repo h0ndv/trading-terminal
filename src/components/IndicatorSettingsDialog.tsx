@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
   INDICATOR_META,
   parseParamSlots,
   type BuiltinIndicatorId,
   type IndicatorConfig,
-} from "../lib/indicators";
-import Dialog from "./ui/Dialog";
+} from '../lib/indicators';
+import Dialog from './ui/Dialog';
 
 type Props = {
   config: IndicatorConfig | null;
@@ -13,11 +13,7 @@ type Props = {
   onSave: (id: BuiltinIndicatorId, calcParams: number[]) => void;
 };
 
-export default function IndicatorSettingsDialog({
-  config,
-  onClose,
-  onSave,
-}: Props) {
+export default function IndicatorSettingsDialog({ config, onClose, onSave }: Props) {
   const [slots, setSlots] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +21,7 @@ export default function IndicatorSettingsDialog({
     if (!config) return;
     const meta = INDICATOR_META[config.id];
     const next = meta.paramLabels.map((_, i) =>
-      config.calcParams[i] != null ? String(config.calcParams[i]) : "",
+      config.calcParams[i] != null ? String(config.calcParams[i]) : '',
     );
     setSlots(next);
     setError(null);
@@ -39,9 +35,9 @@ export default function IndicatorSettingsDialog({
     const parsed = parseParamSlots(slots, meta);
     if (!parsed) {
       setError(
-        meta.paramMode === "variable"
+        meta.paramMode === 'variable'
           ? `Enter ${meta.minParams}–${meta.maxParams} positive values`
-          : "Fill all fields with valid values",
+          : 'Fill all fields with valid values',
       );
       return;
     }
@@ -50,24 +46,16 @@ export default function IndicatorSettingsDialog({
   }
 
   return (
-    <Dialog
-      open
-      title={meta.label}
-      onClose={onClose}
-      onConfirm={confirm}
-      confirmLabel="Confirm"
-    >
+    <Dialog open title={meta.label} onClose={onClose} onConfirm={confirm} confirmLabel="Confirm">
       {meta.paramLabels.map((label, i) => (
         <label key={label} className="dialog-field">
           <span className="dialog-field-label">{label}</span>
           <input
             type="text"
             inputMode="decimal"
-            value={slots[i] ?? ""}
+            value={slots[i] ?? ''}
             placeholder={
-              meta.paramMode === "variable" && i >= meta.minParams
-                ? "optional"
-                : undefined
+              meta.paramMode === 'variable' && i >= meta.minParams ? 'optional' : undefined
             }
             aria-label={label}
             onChange={(e) => {
@@ -80,7 +68,7 @@ export default function IndicatorSettingsDialog({
               setError(null);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === 'Enter') {
                 e.preventDefault();
                 confirm();
               }

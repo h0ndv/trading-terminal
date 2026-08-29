@@ -1,4 +1,4 @@
-import { THEME_TOKEN_KEYS, type ThemeMode, type ThemeTokens } from "./types";
+import { THEME_TOKEN_KEYS, type ThemeMode, type ThemeTokens } from './types';
 
 export function applyThemeToDOM(tokens: ThemeTokens, mode: ThemeMode): void {
   const root = document.documentElement;

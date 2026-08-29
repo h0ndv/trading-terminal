@@ -1,16 +1,14 @@
-import ChartView, {
-  type IndicatorFeatureAction,
-} from "./Chart";
-import { useChartStream } from "../hooks/useChartStream";
+import ChartView, { type IndicatorFeatureAction } from './Chart';
+import { useChartStream } from '../hooks/useChartStream';
 import {
   type DrawingSnapshot,
   type DrawingStyle,
   type DrawingToolId,
   type OverlayMagnetMode,
-} from "../lib/drawings";
-import type { BuiltinIndicatorId } from "../lib/indicators";
-import type { ThemeTokens } from "../lib/theme";
-import type { ChartPanelConfig } from "../lib/workspace";
+} from '../lib/drawings';
+import type { BuiltinIndicatorId } from '../lib/indicators';
+import type { ThemeTokens } from '../lib/theme';
+import type { ChartPanelConfig } from '../lib/workspace';
 
 type Props = {
   chart: ChartPanelConfig;
@@ -28,10 +26,7 @@ type Props = {
   onFocus: () => void;
   onDrawingsChange: (next: DrawingSnapshot[]) => void;
   onActiveToolConsumed: () => void;
-  onIndicatorFeature: (
-    id: BuiltinIndicatorId,
-    action: IndicatorFeatureAction,
-  ) => void;
+  onIndicatorFeature: (id: BuiltinIndicatorId, action: IndicatorFeatureAction) => void;
   onOpenDrawingSettings: (id: string) => void;
   onDrawingSelect: (id: string | null) => void;
 };
@@ -60,7 +55,7 @@ export default function ChartPanel({
 
   return (
     <div
-      className={isActive ? "chart-panel active" : "chart-panel"}
+      className={isActive ? 'chart-panel active' : 'chart-panel'}
       onPointerDown={onFocus}
       role="tabpanel"
       aria-selected={isActive}

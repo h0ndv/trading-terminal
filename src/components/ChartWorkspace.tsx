@@ -1,16 +1,16 @@
-import { Group, Panel, Separator, type Layout } from "react-resizable-panels";
-import ChartPanel from "./ChartPanel";
-import type { IndicatorFeatureAction } from "./Chart";
+import { Group, Panel, Separator, type Layout } from 'react-resizable-panels';
+import ChartPanel from './ChartPanel';
+import type { IndicatorFeatureAction } from './Chart';
 import {
   type DrawingSnapshot,
   type DrawingStyle,
   type DrawingToolId,
   type OverlayMagnetMode,
-} from "../lib/drawings";
-import type { BuiltinIndicatorId } from "../lib/indicators";
-import type { ThemeTokens } from "../lib/theme";
-import type { SymbolInfo } from "../lib/types";
-import type { ChartId, ChartPanelConfig, WorkspaceLayout } from "../lib/workspace";
+} from '../lib/drawings';
+import type { BuiltinIndicatorId } from '../lib/indicators';
+import type { ThemeTokens } from '../lib/theme';
+import type { SymbolInfo } from '../lib/types';
+import type { ChartId, ChartPanelConfig, WorkspaceLayout } from '../lib/workspace';
 
 type Props = {
   charts: ChartPanelConfig[];
@@ -38,12 +38,9 @@ type Props = {
   onDrawingSelect: (id: string | null) => void;
 };
 
-const PANEL_GROUP_ID = "chart-workspace";
+const PANEL_GROUP_ID = 'chart-workspace';
 
-function precisionFor(
-  symbols: SymbolInfo[],
-  ticker: string,
-): { price: number; volume: number } {
+function precisionFor(symbols: SymbolInfo[], ticker: string): { price: number; volume: number } {
   const info = symbols.find((s) => s.ticker === ticker);
   return {
     price: info?.price_precision ?? 2,
@@ -52,9 +49,7 @@ function precisionFor(
 }
 
 function layoutToRecord(layout: Layout): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(layout).map(([k, v]) => [k, Number(v)]),
-  );
+  return Object.fromEntries(Object.entries(layout).map(([k, v]) => [k, Number(v)]));
 }
 
 function recordToLayout(record: Record<string, number>): Layout | undefined {
@@ -67,10 +62,7 @@ function ResizeHandle() {
   return <Separator className="chart-resize-handle" />;
 }
 
-function renderPanel(
-  chart: ChartPanelConfig,
-  props: Props,
-): React.ReactNode {
+function renderPanel(chart: ChartPanelConfig, props: Props): React.ReactNode {
   const { price, volume } = precisionFor(props.symbols, chart.symbol);
   const drawings = props.drawingsBySymbol[chart.symbol] ?? [];
 
@@ -90,13 +82,9 @@ function renderPanel(
       annotationText={props.annotationText}
       drawings={drawings}
       onFocus={() => props.onActiveChartId(chart.id)}
-      onDrawingsChange={(next) =>
-        props.onDrawingsChange(chart.symbol, next)
-      }
+      onDrawingsChange={(next) => props.onDrawingsChange(chart.symbol, next)}
       onActiveToolConsumed={props.onActiveToolConsumed}
-      onIndicatorFeature={(id, action) =>
-        props.onIndicatorFeature(chart.id, id, action)
-      }
+      onIndicatorFeature={(id, action) => props.onIndicatorFeature(chart.id, id, action)}
       onOpenDrawingSettings={props.onOpenDrawingSettings}
       onDrawingSelect={props.onDrawingSelect}
     />
@@ -106,8 +94,7 @@ function renderPanel(
 export default function ChartWorkspace(props: Props) {
   const { charts, workspaceLayout, onLayoutChange } = props;
 
-  const defaultLayout =
-    recordToLayout(workspaceLayout?.defaultLayout ?? {}) ?? undefined;
+  const defaultLayout = recordToLayout(workspaceLayout?.defaultLayout ?? {}) ?? undefined;
 
   const onLayoutChanged = (layout: Layout) => {
     onLayoutChange({
@@ -118,9 +105,7 @@ export default function ChartWorkspace(props: Props) {
 
   if (charts.length === 1) {
     return (
-      <div className="chart-workspace chart-workspace-single">
-        {renderPanel(charts[0]!, props)}
-      </div>
+      <div className="chart-workspace chart-workspace-single">{renderPanel(charts[0]!, props)}</div>
     );
   }
 

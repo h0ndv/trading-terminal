@@ -1,13 +1,13 @@
 export const MAX_WATCHLIST = 40;
 
-export const DEFAULT_WATCHLIST = ["BTCUSDT", "ETHUSDT"] as const;
+export const DEFAULT_WATCHLIST = ['BTCUSDT', 'ETHUSDT'] as const;
 
 export function normalizeWatchlist(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [...DEFAULT_WATCHLIST];
   const out: string[] = [];
   const seen = new Set<string>();
   for (const item of raw) {
-    if (typeof item !== "string") continue;
+    if (typeof item !== 'string') continue;
     const ticker = item.trim().toUpperCase();
     if (!ticker || seen.has(ticker)) continue;
     seen.add(ticker);

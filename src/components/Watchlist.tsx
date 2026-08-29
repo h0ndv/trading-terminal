@@ -1,5 +1,5 @@
-import { IconStar } from "./DrawingToolIcons";
-import type { SymbolInfo } from "../lib/types";
+import { IconStar } from './DrawingToolIcons';
+import type { SymbolInfo } from '../lib/types';
 
 type Props = {
   tickers: string[];
@@ -48,11 +48,9 @@ export default function Watchlist({
               <li key={ticker} className="watchlist-row-wrap">
                 <button
                   type="button"
-                  className={
-                    active ? "watchlist-row active" : "watchlist-row"
-                  }
+                  className={active ? 'watchlist-row active' : 'watchlist-row'}
                   disabled={!info}
-                  title={info ? undefined : "Symbol not in catalog"}
+                  title={info ? undefined : 'Symbol not in catalog'}
                   onClick={() => {
                     if (info) onSelect(info);
                   }}

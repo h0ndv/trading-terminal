@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState, type DragEvent } from "react";
-import { Eye, EyeOff, Settings2 } from "lucide-react";
+import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { Eye, EyeOff, Settings2 } from 'lucide-react';
 import {
   INDICATOR_META,
   reorderIndicators,
   type BuiltinIndicatorId,
   type IndicatorCategory,
   type IndicatorConfig,
-} from "../lib/indicators";
+} from '../lib/indicators';
 
 type Props = {
   value: IndicatorConfig[];
@@ -14,25 +14,19 @@ type Props = {
   onOpenSettings: (id: BuiltinIndicatorId) => void;
 };
 
-type TabId = "all" | IndicatorCategory;
+type TabId = 'all' | IndicatorCategory;
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "overlay", label: "Overlay" },
-  { id: "oscillator", label: "Oscillators" },
-  { id: "volume", label: "Volume" },
+  { id: 'all', label: 'All' },
+  { id: 'overlay', label: 'Overlay' },
+  { id: 'oscillator', label: 'Oscillators' },
+  { id: 'volume', label: 'Volume' },
 ];
 
-export default function IndicatorPanel({
-  value,
-  onChange,
-  onOpenSettings,
-}: Props) {
+export default function IndicatorPanel({ value, onChange, onOpenSettings }: Props) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<TabId>("all");
-  const [draggingId, setDraggingId] = useState<BuiltinIndicatorId | null>(
-    null,
-  );
+  const [tab, setTab] = useState<TabId>('all');
+  const [draggingId, setDraggingId] = useState<BuiltinIndicatorId | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,12 +35,12 @@ export default function IndicatorPanel({
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
   const visible = value.filter((c) =>
-    tab === "all" ? true : INDICATOR_META[c.id].category === tab,
+    tab === 'all' ? true : INDICATOR_META[c.id].category === tab,
   );
 
   function patch(id: BuiltinIndicatorId, next: Partial<IndicatorConfig>) {
@@ -55,19 +49,18 @@ export default function IndicatorPanel({
 
   function onDragStart(e: DragEvent, id: BuiltinIndicatorId) {
     setDraggingId(id);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
   }
 
   function onDragOverRow(e: DragEvent) {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+    e.dataTransfer.dropEffect = 'move';
   }
 
   function onDropRow(e: DragEvent, beforeId: BuiltinIndicatorId) {
     e.preventDefault();
-    const id = (e.dataTransfer.getData("text/plain") ||
-      draggingId) as BuiltinIndicatorId | null;
+    const id = (e.dataTransfer.getData('text/plain') || draggingId) as BuiltinIndicatorId | null;
     setDraggingId(null);
     if (!id || id === beforeId) return;
     onChange(reorderIndicators(value, id, beforeId));
@@ -77,7 +70,7 @@ export default function IndicatorPanel({
     <div className="indicator-panel" ref={rootRef}>
       <button
         type="button"
-        className={open ? "indicator-toggle active" : "indicator-toggle"}
+        className={open ? 'indicator-toggle active' : 'indicator-toggle'}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((o) => !o)}
@@ -85,11 +78,7 @@ export default function IndicatorPanel({
         Indicators
       </button>
       {open && (
-        <div
-          className="indicator-popover"
-          role="dialog"
-          aria-label="Indicators"
-        >
+        <div className="indicator-popover" role="dialog" aria-label="Indicators">
           <div className="indicator-tabs" role="tablist">
             {TABS.map((t) => (
               <button
@@ -97,9 +86,7 @@ export default function IndicatorPanel({
                 type="button"
                 role="tab"
                 aria-selected={tab === t.id}
-                className={
-                  tab === t.id ? "indicator-tab active" : "indicator-tab"
-                }
+                className={tab === t.id ? 'indicator-tab active' : 'indicator-tab'}
                 onClick={() => setTab(t.id)}
               >
                 {t.label}
@@ -115,11 +102,7 @@ export default function IndicatorPanel({
                 return (
                   <div
                     key={cfg.id}
-                    className={
-                      draggingId === cfg.id
-                        ? "indicator-row dragging"
-                        : "indicator-row"
-                    }
+                    className={draggingId === cfg.id ? 'indicator-row dragging' : 'indicator-row'}
                     onDragOver={onDragOverRow}
                     onDrop={(e) => onDropRow(e, cfg.id)}
                   >
@@ -138,35 +121,23 @@ export default function IndicatorPanel({
                       <input
                         type="checkbox"
                         checked={cfg.enabled}
-                        onChange={(e) =>
-                          patch(cfg.id, { enabled: e.target.checked })
-                        }
+                        onChange={(e) => patch(cfg.id, { enabled: e.target.checked })}
                       />
                       <span>
                         {meta.label}
-                        {cfg.enabled
-                          ? ` (${cfg.calcParams.join(",")})`
-                          : ""}
+                        {cfg.enabled ? ` (${cfg.calcParams.join(',')})` : ''}
                       </span>
                     </label>
                     <div className="indicator-row-actions">
                       <button
                         type="button"
                         className={
-                          cfg.visible
-                            ? "indicator-action-btn"
-                            : "indicator-action-btn active"
+                          cfg.visible ? 'indicator-action-btn' : 'indicator-action-btn active'
                         }
-                        title={cfg.visible ? "Hide" : "Show"}
-                        aria-label={
-                          cfg.visible
-                            ? `Hide ${meta.label}`
-                            : `Show ${meta.label}`
-                        }
+                        title={cfg.visible ? 'Hide' : 'Show'}
+                        aria-label={cfg.visible ? `Hide ${meta.label}` : `Show ${meta.label}`}
                         disabled={!cfg.enabled}
-                        onClick={() =>
-                          patch(cfg.id, { visible: !cfg.visible })
-                        }
+                        onClick={() => patch(cfg.id, { visible: !cfg.visible })}
                       >
                         {cfg.visible ? (
                           <Eye size={14} strokeWidth={2} />

@@ -4,11 +4,11 @@ Desktop trading terminal (Tauri v2 + React + TypeScript) with a pure Rust market
 
 ## Versions
 
-| Package | Version |
-|---------|---------|
-| klinecharts | **10.0.1** |
-| tauri (Rust crate / CLI) | **2** |
-| @tauri-apps/api | **^2** |
+| Package                  | Version    |
+| ------------------------ | ---------- |
+| klinecharts              | **10.0.1** |
+| tauri (Rust crate / CLI) | **2**      |
+| @tauri-apps/api          | **^2**     |
 
 ## Run
 

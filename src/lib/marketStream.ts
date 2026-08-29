@@ -1,28 +1,21 @@
-import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type {
-  Candle,
-  CandleUpdateEvent,
-  ChartStreamSubscription,
-  SymbolInfo,
-} from "./types";
+import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { Candle, CandleUpdateEvent, ChartStreamSubscription, SymbolInfo } from './types';
 
 export function getHistorical(
   symbol: string,
   timeframe: string,
   endTime?: number,
 ): Promise<Candle[]> {
-  return invoke<Candle[]>("get_historical", { symbol, timeframe, endTime });
+  return invoke<Candle[]>('get_historical', { symbol, timeframe, endTime });
 }
 
 export function listSymbols(): Promise<SymbolInfo[]> {
-  return invoke<SymbolInfo[]>("list_symbols");
+  return invoke<SymbolInfo[]>('list_symbols');
 }
 
-export function syncChartStreams(
-  subscriptions: ChartStreamSubscription[],
-): Promise<void> {
-  return invoke("sync_chart_streams", { subscriptions });
+export function syncChartStreams(subscriptions: ChartStreamSubscription[]): Promise<void> {
+  return invoke('sync_chart_streams', { subscriptions });
 }
 
 export function streamKey(symbol: string, timeframe: string): string {
@@ -37,7 +30,7 @@ let subscriberCount = 0;
 
 async function ensureListener(): Promise<void> {
   if (unlisten) return;
-  unlisten = await listen<CandleUpdateEvent>("candle-update", (event) => {
+  unlisten = await listen<CandleUpdateEvent>('candle-update', (event) => {
     const { symbol, timeframe, candle } = event.payload;
     const key = streamKey(symbol, timeframe);
     listeners.get(key)?.forEach((cb) => cb(candle));
@@ -79,9 +72,7 @@ export type ChartStreamSync = {
   timeframe: string;
 };
 
-export function toStreamSubscriptions(
-  charts: ChartStreamSync[],
-): ChartStreamSubscription[] {
+export function toStreamSubscriptions(charts: ChartStreamSync[]): ChartStreamSubscription[] {
   return charts.map((c) => ({
     chart_id: c.chartId,
     symbol: c.symbol,

@@ -1,12 +1,12 @@
-import type { ReactElement, ReactNode, SVGProps } from "react";
-import type { DrawingToolGroupId } from "../lib/drawings";
+import type { ReactElement, ReactNode, SVGProps } from 'react';
+import type { DrawingToolGroupId } from '../lib/drawings';
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
 function Svg({
   size = 16,
   children,
-  viewBox = "0 0 16 16",
+  viewBox = '0 0 16 16',
   strokeWidth = 1.5,
   ...rest
 }: IconProps & { children: ReactNode }) {
@@ -143,16 +143,13 @@ export function IconStar(p: IconProps & { filled?: boolean }) {
     <Svg {...rest}>
       <path
         d="M8 2.2 L9.7 5.8 L13.7 6.2 L10.7 8.9 L11.6 12.8 L8 10.8 L4.4 12.8 L5.3 8.9 L2.3 6.2 L6.3 5.8 Z"
-        fill={filled ? "currentColor" : "none"}
+        fill={filled ? 'currentColor' : 'none'}
       />
     </Svg>
   );
 }
 
-export const GROUP_TOOL_ICONS: Record<
-  DrawingToolGroupId,
-  (p: IconProps) => ReactElement
-> = {
+export const GROUP_TOOL_ICONS: Record<DrawingToolGroupId, (p: IconProps) => ReactElement> = {
   singleLine: IconTrendLine,
   horizontal: IconHorizontal,
   vertical: IconVertical,

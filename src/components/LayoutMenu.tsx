@@ -1,11 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { Download, FolderOpen, LayoutTemplate, RotateCcw } from "lucide-react";
-import {
-  exportLayoutToFile,
-  importLayoutFromFile,
-  type AppSettings,
-} from "../lib/settings";
-import Dialog from "./ui/Dialog";
+import { useEffect, useRef, useState } from 'react';
+import { Download, FolderOpen, LayoutTemplate, RotateCcw } from 'lucide-react';
+import { exportLayoutToFile, importLayoutFromFile, type AppSettings } from '../lib/settings';
+import Dialog from './ui/Dialog';
 
 type Props = {
   getSettings: () => AppSettings;
@@ -13,11 +9,7 @@ type Props = {
   onRestore: () => void;
 };
 
-export default function LayoutMenu({
-  getSettings,
-  onImport,
-  onRestore,
-}: Props) {
+export default function LayoutMenu({ getSettings, onImport, onRestore }: Props) {
   const [open, setOpen] = useState(false);
   const [pendingImport, setPendingImport] = useState<AppSettings | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -30,13 +22,13 @@ export default function LayoutMenu({
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === 'Escape') setOpen(false);
     }
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
     };
   }, [open]);
 
@@ -44,9 +36,9 @@ export default function LayoutMenu({
     setOpen(false);
     try {
       const ok = await exportLayoutToFile(getSettings());
-      if (ok) console.info("Layout exported");
+      if (ok) console.info('Layout exported');
     } catch (e) {
-      console.error("export layout failed", e);
+      console.error('export layout failed', e);
     }
   }
 
@@ -56,15 +48,15 @@ export default function LayoutMenu({
     try {
       const result = await importLayoutFromFile();
       if (!result.ok) {
-        if (result.reason === "invalid") {
-          setImportError("Invalid or unsupported layout file.");
+        if (result.reason === 'invalid') {
+          setImportError('Invalid or unsupported layout file.');
         }
         return;
       }
       setPendingImport(result.settings);
     } catch (e) {
-      console.error("import layout failed", e);
-      setImportError("Could not read layout file.");
+      console.error('import layout failed', e);
+      setImportError('Could not read layout file.');
     }
   }
 
@@ -84,7 +76,7 @@ export default function LayoutMenu({
       <div className="layout-menu" ref={rootRef}>
         <button
           type="button"
-          className={open ? "layout-menu-toggle active" : "layout-menu-toggle"}
+          className={open ? 'layout-menu-toggle active' : 'layout-menu-toggle'}
           aria-label="Layout"
           aria-expanded={open}
           title="Layout"
@@ -136,9 +128,8 @@ export default function LayoutMenu({
         onConfirm={onConfirmImport}
         confirmLabel="Import"
       >
-        <p style={{ margin: 0, color: "var(--muted-foreground)" }}>
-          This will replace your current workspace (charts, drawings,
-          watchlist, and theme).
+        <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>
+          This will replace your current workspace (charts, drawings, watchlist, and theme).
         </p>
       </Dialog>
 
@@ -150,9 +141,7 @@ export default function LayoutMenu({
         onConfirm={() => setImportError(null)}
         cancelLabel="Close"
       >
-        <p style={{ margin: 0, color: "var(--muted-foreground)" }}>
-          {importError}
-        </p>
+        <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>{importError}</p>
       </Dialog>
 
       <Dialog
@@ -163,7 +152,7 @@ export default function LayoutMenu({
         confirmLabel="Restore"
         confirmDanger
       >
-        <p style={{ margin: 0, color: "var(--muted-foreground)" }}>
+        <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>
           Reset workspace to factory defaults? Your current layout will be lost.
         </p>
       </Dialog>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
   DEFAULT_DRAWING_STYLE,
   toolNeedsText,
@@ -6,8 +6,8 @@ import {
   type DrawingStyle,
   type DrawingToolId,
   type OverlayMagnetMode,
-} from "../lib/drawings";
-import Dialog from "./ui/Dialog";
+} from '../lib/drawings';
+import Dialog from './ui/Dialog';
 
 type Props = {
   drawing: DrawingSnapshot | null;
@@ -30,11 +30,11 @@ export default function DrawingSettingsDialog({
 }: Props) {
   const [color, setColor] = useState(DEFAULT_DRAWING_STYLE.color);
   const [size, setSize] = useState(1);
-  const [lineStyle, setLineStyle] = useState<"solid" | "dashed">("solid");
+  const [lineStyle, setLineStyle] = useState<'solid' | 'dashed'>('solid');
   const [visible, setVisible] = useState(true);
   const [lock, setLock] = useState(false);
-  const [mode, setMode] = useState<OverlayMagnetMode>("normal");
-  const [text, setText] = useState("");
+  const [mode, setMode] = useState<OverlayMagnetMode>('normal');
+  const [text, setText] = useState('');
 
   useEffect(() => {
     if (!drawing) return;
@@ -44,10 +44,8 @@ export default function DrawingSettingsDialog({
     setLineStyle(s.lineStyle);
     setVisible(drawing.visible !== false);
     setLock(Boolean(drawing.lock));
-    setMode(drawing.mode ?? "normal");
-    setText(
-      typeof drawing.extendData === "string" ? drawing.extendData : "",
-    );
+    setMode(drawing.mode ?? 'normal');
+    setText(typeof drawing.extendData === 'string' ? drawing.extendData : '');
   }, [drawing]);
 
   if (!drawing) return null;
@@ -61,7 +59,7 @@ export default function DrawingSettingsDialog({
       mode,
       styles: { color, size, lineStyle },
     };
-    if (needsText) patch.extendData = text.trim() || "Note";
+    if (needsText) patch.extendData = text.trim() || 'Note';
     onSave(drawing!.id, patch);
     onClose();
   }
@@ -74,11 +72,7 @@ export default function DrawingSettingsDialog({
       onConfirm={confirm}
       confirmLabel="Confirm"
       footerExtra={
-        <button
-          type="button"
-          className="dialog-btn danger"
-          onClick={() => onDelete(drawing.id)}
-        >
+        <button type="button" className="dialog-btn danger" onClick={() => onDelete(drawing.id)}>
           Delete
         </button>
       }
@@ -98,9 +92,7 @@ export default function DrawingSettingsDialog({
               key={c}
               type="button"
               className={
-                color.toLowerCase() === c.toLowerCase()
-                  ? "drawing-swatch active"
-                  : "drawing-swatch"
+                color.toLowerCase() === c.toLowerCase() ? 'drawing-swatch active' : 'drawing-swatch'
               }
               style={{ background: c }}
               aria-label={`Color ${c}`}
@@ -130,9 +122,7 @@ export default function DrawingSettingsDialog({
         <select
           value={lineStyle}
           aria-label="Line style"
-          onChange={(e) =>
-            setLineStyle(e.target.value as "solid" | "dashed")
-          }
+          onChange={(e) => setLineStyle(e.target.value as 'solid' | 'dashed')}
         >
           <option value="solid">Solid</option>
           <option value="dashed">Dashed</option>
@@ -144,9 +134,7 @@ export default function DrawingSettingsDialog({
         <select
           value={mode}
           aria-label="Magnet mode"
-          onChange={(e) =>
-            setMode(e.target.value as OverlayMagnetMode)
-          }
+          onChange={(e) => setMode(e.target.value as OverlayMagnetMode)}
         >
           <option value="normal">Off</option>
           <option value="weak_magnet">Weak</option>
@@ -167,20 +155,12 @@ export default function DrawingSettingsDialog({
       )}
 
       <label className="dialog-check">
-        <input
-          type="checkbox"
-          checked={visible}
-          onChange={(e) => setVisible(e.target.checked)}
-        />
+        <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
         Visible
       </label>
 
       <label className="dialog-check">
-        <input
-          type="checkbox"
-          checked={lock}
-          onChange={(e) => setLock(e.target.checked)}
-        />
+        <input type="checkbox" checked={lock} onChange={(e) => setLock(e.target.checked)} />
         Lock
       </label>
     </Dialog>

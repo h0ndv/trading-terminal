@@ -1,5 +1,5 @@
-import { useEffect, useRef, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, type ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 type Props = {
   open: boolean;
@@ -18,8 +18,8 @@ export default function Dialog({
   title,
   onClose,
   onConfirm,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
   confirmDanger = false,
   children,
   footerExtra,
@@ -29,13 +29,13 @@ export default function Dialog({
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === 'Escape') onClose();
     }
-    document.addEventListener("keydown", onKey);
+    document.addEventListener('keydown', onKey);
     const prev = document.activeElement as HTMLElement | null;
-    panelRef.current?.querySelector<HTMLElement>("input,button,select")?.focus();
+    panelRef.current?.querySelector<HTMLElement>('input,button,select')?.focus();
     return () => {
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener('keydown', onKey);
       prev?.focus?.();
     };
   }, [open, onClose]);
@@ -54,12 +54,7 @@ export default function Dialog({
       >
         <header className="dialog-header">
           <h2 className="dialog-title">{title}</h2>
-          <button
-            type="button"
-            className="dialog-icon-btn"
-            aria-label="Close"
-            onClick={onClose}
-          >
+          <button type="button" className="dialog-icon-btn" aria-label="Close" onClick={onClose}>
             <X size={16} strokeWidth={2} />
           </button>
         </header>
@@ -67,19 +62,13 @@ export default function Dialog({
         <footer className="dialog-footer">
           {footerExtra}
           <div className="dialog-footer-actions">
-            <button
-              type="button"
-              className="dialog-btn"
-              onClick={onClose}
-            >
+            <button type="button" className="dialog-btn" onClick={onClose}>
               {cancelLabel}
             </button>
             {onConfirm && (
               <button
                 type="button"
-                className={
-                  confirmDanger ? "dialog-btn danger-fill" : "dialog-btn primary"
-                }
+                className={confirmDanger ? 'dialog-btn danger-fill' : 'dialog-btn primary'}
                 onClick={onConfirm}
               >
                 {confirmLabel}

@@ -117,10 +117,7 @@ pub fn parse_exchange_symbols(body: &Value) -> Result<Vec<SymbolInfo>> {
 }
 
 fn parse_symbol_entry(item: &Value) -> Result<Option<SymbolInfo>> {
-    let status = item
-        .get("status")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let status = item.get("status").and_then(|v| v.as_str()).unwrap_or("");
     if status != "TRADING" {
         return Ok(None);
     }

@@ -3,5 +3,5 @@ export {
   listSymbols,
   syncChartStreams,
   toStreamSubscriptions,
-} from "./marketStream";
-export type { ChartStreamSync } from "./marketStream";
+} from './marketStream';
+export type { ChartStreamSync } from './marketStream';

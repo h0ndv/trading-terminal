@@ -1,21 +1,21 @@
-import type { DeepPartial, Styles } from "klinecharts";
-import type { ThemeTokens } from "./types";
+import type { DeepPartial, Styles } from 'klinecharts';
+import type { ThemeTokens } from './types';
 
 export function toKLineStyles(tokens: ThemeTokens): DeepPartial<Styles> {
-  const up = tokens["candle-up"];
-  const down = tokens["candle-down"];
-  const muted = tokens["muted-foreground"];
+  const up = tokens['candle-up'];
+  const down = tokens['candle-down'];
+  const muted = tokens['muted-foreground'];
   const fg = tokens.foreground;
   const border = tokens.border;
   const card = tokens.card;
   const noChange = muted;
 
   const lineColors = [
-    tokens["chart-1"],
-    tokens["chart-2"],
-    tokens["chart-3"],
-    tokens["chart-4"],
-    tokens["chart-5"],
+    tokens['chart-1'],
+    tokens['chart-2'],
+    tokens['chart-3'],
+    tokens['chart-4'],
+    tokens['chart-5'],
   ];
 
   return {

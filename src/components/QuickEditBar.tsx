@@ -5,30 +5,13 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
-} from "react";
-import {
-  Eye,
-  EyeOff,
-  GripVertical,
-  Lock,
-  LockOpen,
-  Settings2,
-  Trash2,
-} from "lucide-react";
-import {
-  DEFAULT_DRAWING_STYLE,
-  type DrawingSnapshot,
-  type DrawingStyle,
-} from "../lib/drawings";
-import {
-  INDICATOR_META,
-  type BuiltinIndicatorId,
-  type IndicatorConfig,
-} from "../lib/indicators";
+} from 'react';
+import { Eye, EyeOff, GripVertical, Lock, LockOpen, Settings2, Trash2 } from 'lucide-react';
+import { DEFAULT_DRAWING_STYLE, type DrawingSnapshot, type DrawingStyle } from '../lib/drawings';
+import { INDICATOR_META, type BuiltinIndicatorId, type IndicatorConfig } from '../lib/indicators';
 
 export type QuickTarget =
-  | { kind: "drawing"; id: string }
-  | { kind: "indicator"; id: BuiltinIndicatorId };
+  { kind: 'drawing'; id: string } | { kind: 'indicator'; id: BuiltinIndicatorId };
 
 type Props = {
   target: QuickTarget | null;
@@ -41,10 +24,7 @@ type Props = {
   onOpenFullSettings: () => void;
   onPatchDrawing: (id: string, patch: Partial<DrawingSnapshot>) => void;
   onDeleteDrawing: (id: string) => void;
-  onPatchIndicator: (
-    id: BuiltinIndicatorId,
-    patch: Partial<IndicatorConfig>,
-  ) => void;
+  onPatchIndicator: (id: BuiltinIndicatorId, patch: Partial<IndicatorConfig>) => void;
   onRemoveIndicator: (id: BuiltinIndicatorId) => void;
 };
 
@@ -52,16 +32,11 @@ function styleOf(d: DrawingSnapshot): DrawingStyle {
   return d.styles ?? { ...DEFAULT_DRAWING_STYLE };
 }
 
-type Flyout = "color" | "width" | "line" | null;
+type Flyout = 'color' | 'width' | 'line' | null;
 
 type Pos = { x: number; y: number };
 
-function clampPos(
-  x: number,
-  y: number,
-  el: HTMLElement,
-  parent: HTMLElement,
-): Pos {
+function clampPos(x: number, y: number, el: HTMLElement, parent: HTMLElement): Pos {
   const er = el.getBoundingClientRect();
   const pr = parent.getBoundingClientRect();
   const maxX = Math.max(0, pr.width - er.width);
@@ -100,7 +75,7 @@ function QuickBarShell({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         if (flyout) setFlyout(null);
         else onClose();
       }
@@ -111,11 +86,11 @@ function QuickBarShell({
         setFlyout(null);
       }
     }
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onPointerDownOutside);
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onPointerDownOutside);
     return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onPointerDownOutside);
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onPointerDownOutside);
     };
   }, [flyout, onClose, setFlyout]);
 
@@ -152,14 +127,7 @@ function QuickBarShell({
     if (!drag || !el || !parent) return;
 
     const pr = parent.getBoundingClientRect();
-    setDraft(
-      clampPos(
-        e.clientX - pr.left - drag.ox,
-        e.clientY - pr.top - drag.oy,
-        el,
-        parent,
-      ),
-    );
+    setDraft(clampPos(e.clientX - pr.left - drag.ox, e.clientY - pr.top - drag.oy, el, parent));
   }
 
   function onGripPointerUp(e: ReactPointerEvent) {
@@ -178,13 +146,13 @@ function QuickBarShell({
   }
 
   const style: CSSProperties | undefined = display
-    ? { left: display.x, top: display.y, transform: "none" }
+    ? { left: display.x, top: display.y, transform: 'none' }
     : undefined;
 
   return (
     <div
       ref={rootRef}
-      className={dragging ? "quick-bar dragging" : "quick-bar"}
+      className={dragging ? 'quick-bar dragging' : 'quick-bar'}
       role="toolbar"
       aria-label={ariaLabel}
       style={style}
@@ -225,11 +193,11 @@ export default function QuickEditBar({
 
   useEffect(() => {
     setFlyout(null);
-  }, [target?.kind, target && "id" in target ? target.id : null]);
+  }, [target?.kind, target && 'id' in target ? target.id : null]);
 
   if (!target) return null;
 
-  if (target.kind === "drawing" && drawing) {
+  if (target.kind === 'drawing' && drawing) {
     const style = styleOf(drawing);
     const locked = Boolean(drawing.lock);
 
@@ -247,17 +215,12 @@ export default function QuickEditBar({
             type="button"
             className="quick-bar-btn"
             title="Color"
-            aria-expanded={flyout === "color"}
-            onClick={() =>
-              setFlyout((f) => (f === "color" ? null : "color"))
-            }
+            aria-expanded={flyout === 'color'}
+            onClick={() => setFlyout((f) => (f === 'color' ? null : 'color'))}
           >
-            <span
-              className="quick-bar-swatch"
-              style={{ background: style.color }}
-            />
+            <span className="quick-bar-swatch" style={{ background: style.color }} />
           </button>
-          {flyout === "color" && (
+          {flyout === 'color' && (
             <div className="quick-bar-flyout" role="dialog" aria-label="Color">
               <input
                 className="drawing-color"
@@ -276,8 +239,8 @@ export default function QuickEditBar({
                   type="button"
                   className={
                     style.color.toLowerCase() === c.toLowerCase()
-                      ? "drawing-swatch active"
-                      : "drawing-swatch"
+                      ? 'drawing-swatch active'
+                      : 'drawing-swatch'
                   }
                   style={{ background: c }}
                   aria-label={`Color ${c}`}
@@ -298,15 +261,13 @@ export default function QuickEditBar({
             type="button"
             className="quick-bar-btn text"
             title="Line width"
-            aria-expanded={flyout === "width"}
-            onClick={() =>
-              setFlyout((f) => (f === "width" ? null : "width"))
-            }
+            aria-expanded={flyout === 'width'}
+            onClick={() => setFlyout((f) => (f === 'width' ? null : 'width'))}
           >
             <span className="quick-bar-width-icon" aria-hidden />
             {style.size}px
           </button>
-          {flyout === "width" && (
+          {flyout === 'width' && (
             <div className="quick-bar-flyout" role="menu" aria-label="Width">
               {[1, 2, 3, 4].map((n) => (
                 <button
@@ -314,9 +275,7 @@ export default function QuickEditBar({
                   type="button"
                   role="menuitem"
                   className={
-                    style.size === n
-                      ? "quick-bar-menu-item active"
-                      : "quick-bar-menu-item"
+                    style.size === n ? 'quick-bar-menu-item active' : 'quick-bar-menu-item'
                   }
                   onClick={() => {
                     onPatchDrawing(drawing.id, {
@@ -337,30 +296,26 @@ export default function QuickEditBar({
             type="button"
             className="quick-bar-btn text"
             title="Line style"
-            aria-expanded={flyout === "line"}
-            onClick={() => setFlyout((f) => (f === "line" ? null : "line"))}
+            aria-expanded={flyout === 'line'}
+            onClick={() => setFlyout((f) => (f === 'line' ? null : 'line'))}
           >
             <span
               className={
-                style.lineStyle === "dashed"
-                  ? "quick-bar-line-icon dashed"
-                  : "quick-bar-line-icon"
+                style.lineStyle === 'dashed' ? 'quick-bar-line-icon dashed' : 'quick-bar-line-icon'
               }
               aria-hidden
             />
-            {style.lineStyle === "dashed" ? "Dashed" : "Solid"}
+            {style.lineStyle === 'dashed' ? 'Dashed' : 'Solid'}
           </button>
-          {flyout === "line" && (
+          {flyout === 'line' && (
             <div className="quick-bar-flyout" role="menu" aria-label="Style">
-              {(["solid", "dashed"] as const).map((ls) => (
+              {(['solid', 'dashed'] as const).map((ls) => (
                 <button
                   key={ls}
                   type="button"
                   role="menuitem"
                   className={
-                    style.lineStyle === ls
-                      ? "quick-bar-menu-item active"
-                      : "quick-bar-menu-item"
+                    style.lineStyle === ls ? 'quick-bar-menu-item active' : 'quick-bar-menu-item'
                   }
                   onClick={() => {
                     onPatchDrawing(drawing.id, {
@@ -369,7 +324,7 @@ export default function QuickEditBar({
                     setFlyout(null);
                   }}
                 >
-                  {ls === "solid" ? "Solid" : "Dashed"}
+                  {ls === 'solid' ? 'Solid' : 'Dashed'}
                 </button>
               ))}
             </div>
@@ -378,16 +333,12 @@ export default function QuickEditBar({
 
         <button
           type="button"
-          className={locked ? "quick-bar-btn active" : "quick-bar-btn"}
-          title={locked ? "Unlock" : "Lock"}
+          className={locked ? 'quick-bar-btn active' : 'quick-bar-btn'}
+          title={locked ? 'Unlock' : 'Lock'}
           aria-pressed={locked}
           onClick={() => onPatchDrawing(drawing.id, { lock: !locked })}
         >
-          {locked ? (
-            <Lock size={14} strokeWidth={2} />
-          ) : (
-            <LockOpen size={14} strokeWidth={2} />
-          )}
+          {locked ? <Lock size={14} strokeWidth={2} /> : <LockOpen size={14} strokeWidth={2} />}
         </button>
 
         <button
@@ -413,7 +364,7 @@ export default function QuickEditBar({
     );
   }
 
-  if (target.kind === "indicator" && indicator) {
+  if (target.kind === 'indicator' && indicator) {
     const meta = INDICATOR_META[indicator.id];
     const visible = indicator.visible !== false;
 
@@ -427,23 +378,17 @@ export default function QuickEditBar({
         onPosChange={onBarPosChange}
       >
         <span className="quick-bar-label">
-          {meta.label}({indicator.calcParams.join(",")})
+          {meta.label}({indicator.calcParams.join(',')})
         </span>
 
         <button
           type="button"
-          className={visible ? "quick-bar-btn" : "quick-bar-btn active"}
-          title={visible ? "Hide" : "Show"}
+          className={visible ? 'quick-bar-btn' : 'quick-bar-btn active'}
+          title={visible ? 'Hide' : 'Show'}
           aria-pressed={!visible}
-          onClick={() =>
-            onPatchIndicator(indicator.id, { visible: !visible })
-          }
+          onClick={() => onPatchIndicator(indicator.id, { visible: !visible })}
         >
-          {visible ? (
-            <Eye size={14} strokeWidth={2} />
-          ) : (
-            <EyeOff size={14} strokeWidth={2} />
-          )}
+          {visible ? <Eye size={14} strokeWidth={2} /> : <EyeOff size={14} strokeWidth={2} />}
         </button>
 
         <button

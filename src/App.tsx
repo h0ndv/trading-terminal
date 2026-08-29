@@ -1,32 +1,32 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 
-import { LayoutGrid, Plus, X } from "lucide-react";
+import { LayoutGrid, Plus, X } from 'lucide-react';
 
-import "./App.css";
+import './App.css';
 
-import ChartWorkspace from "./components/ChartWorkspace";
+import ChartWorkspace from './components/ChartWorkspace';
 
-import DrawingSettingsDialog from "./components/DrawingSettingsDialog";
+import DrawingSettingsDialog from './components/DrawingSettingsDialog';
 
-import DrawingToolbar from "./components/DrawingToolbar";
+import DrawingToolbar from './components/DrawingToolbar';
 
-import FavoriteToolsBar from "./components/FavoriteToolsBar";
+import FavoriteToolsBar from './components/FavoriteToolsBar';
 
-import IndicatorPanel from "./components/IndicatorPanel";
+import IndicatorPanel from './components/IndicatorPanel';
 
-import IndicatorSettingsDialog from "./components/IndicatorSettingsDialog";
+import IndicatorSettingsDialog from './components/IndicatorSettingsDialog';
 
-import QuickEditBar, { type QuickTarget } from "./components/QuickEditBar";
+import QuickEditBar, { type QuickTarget } from './components/QuickEditBar';
 
-import Dialog from "./components/ui/Dialog";
+import Dialog from './components/ui/Dialog';
 
-import LayoutMenu from "./components/LayoutMenu";
+import LayoutMenu from './components/LayoutMenu';
 
-import ThemePicker from "./components/ThemePicker";
+import ThemePicker from './components/ThemePicker';
 
-import SymbolPicker, { useSymbolCatalog } from "./components/SymbolPicker";
+import SymbolPicker, { useSymbolCatalog } from './components/SymbolPicker';
 
-import Watchlist from "./components/Watchlist";
+import Watchlist from './components/Watchlist';
 
 import {
   DEFAULT_DRAWING_STYLE,
@@ -38,12 +38,9 @@ import {
   type DrawingStyle,
   type DrawingToolId,
   type OverlayMagnetMode,
-} from "./lib/drawings";
+} from './lib/drawings';
 
-import {
-  patchIndicator,
-  type BuiltinIndicatorId,
-} from "./lib/indicators";
+import { patchIndicator, type BuiltinIndicatorId } from './lib/indicators';
 
 import {
   DEFAULT_SETTINGS,
@@ -52,7 +49,7 @@ import {
   VALID_INTERVALS,
   type AppSettings,
   type QuickBarPos,
-} from "./lib/settings";
+} from './lib/settings';
 
 import {
   applyThemeToDOM,
@@ -60,13 +57,13 @@ import {
   drawingColorPresets,
   resolveThemeTokens,
   type ThemeMode,
-} from "./lib/theme";
+} from './lib/theme';
 
-import { syncChartStreams, toStreamSubscriptions } from "./lib/tauriBridge";
+import { syncChartStreams, toStreamSubscriptions } from './lib/tauriBridge';
 
-import type { SymbolInfo } from "./lib/types";
+import type { SymbolInfo } from './lib/types';
 
-import { toggleWatchlist } from "./lib/watchlist";
+import { toggleWatchlist } from './lib/watchlist';
 
 import {
   addChart,
@@ -77,12 +74,10 @@ import {
   type ChartId,
   type ChartPanelConfig,
   type WorkspaceLayout,
-} from "./lib/workspace";
+} from './lib/workspace';
 
 type ConfigTarget =
-  | { kind: "indicator"; id: BuiltinIndicatorId }
-  | { kind: "drawing"; id: string }
-  | null;
+  { kind: 'indicator'; id: BuiltinIndicatorId } | { kind: 'drawing'; id: string } | null;
 
 function App() {
   const [charts, setCharts] = useState<ChartPanelConfig[]>(() =>
@@ -95,30 +90,25 @@ function App() {
     })),
   );
 
-  const [activeChartId, setActiveChartId] = useState<ChartId>(
-    DEFAULT_SETTINGS.activeChartId,
+  const [activeChartId, setActiveChartId] = useState<ChartId>(DEFAULT_SETTINGS.activeChartId);
+
+  const [workspaceLayout, setWorkspaceLayout] = useState<WorkspaceLayout | null>(
+    DEFAULT_SETTINGS.workspaceLayout,
   );
 
-  const [workspaceLayout, setWorkspaceLayout] =
-    useState<WorkspaceLayout | null>(DEFAULT_SETTINGS.workspaceLayout);
+  const [drawingsBySymbol, setDrawingsBySymbol] = useState<Record<string, DrawingSnapshot[]>>({});
 
-  const [drawingsBySymbol, setDrawingsBySymbol] = useState<
-    Record<string, DrawingSnapshot[]>
-  >({});
-
-  const [watchlist, setWatchlist] = useState<string[]>(() => [
-    ...DEFAULT_SETTINGS.watchlist,
-  ]);
+  const [watchlist, setWatchlist] = useState<string[]>(() => [...DEFAULT_SETTINGS.watchlist]);
 
   const [activeTool, setActiveTool] = useState<DrawingToolId | null>(null);
 
-  const [magnetMode, setMagnetMode] = useState<OverlayMagnetMode>("normal");
+  const [magnetMode, setMagnetMode] = useState<OverlayMagnetMode>('normal');
 
   const [drawStyle, setDrawStyle] = useState<DrawingStyle>(() => ({
     ...DEFAULT_DRAWING_STYLE,
   }));
 
-  const [annotationText, setAnnotationText] = useState("Note");
+  const [annotationText, setAnnotationText] = useState('Note');
 
   const [hydrated, setHydrated] = useState(false);
 
@@ -128,9 +118,7 @@ function App() {
 
   const [quickBarPos, setQuickBarPos] = useState<QuickBarPos | null>(null);
 
-  const [favoritesBarPos, setFavoritesBarPos] = useState<QuickBarPos | null>(
-    null,
-  );
+  const [favoritesBarPos, setFavoritesBarPos] = useState<QuickBarPos | null>(null);
 
   const [favoriteTools, setFavoriteTools] = useState<DrawingToolId[]>([]);
 
@@ -138,9 +126,7 @@ function App() {
 
   const [themeId, setThemeId] = useState(DEFAULT_SETTINGS.themeId);
 
-  const [themeMode, setThemeMode] = useState<ThemeMode>(
-    DEFAULT_SETTINGS.themeMode,
-  );
+  const [themeMode, setThemeMode] = useState<ThemeMode>(DEFAULT_SETTINGS.themeMode);
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -152,9 +138,9 @@ function App() {
     [charts, activeChartId],
   );
 
-  const symbol = activeChart?.symbol ?? "BTCUSDT";
+  const symbol = activeChart?.symbol ?? 'BTCUSDT';
 
-  const timeframe = activeChart?.timeframe ?? "1m";
+  const timeframe = activeChart?.timeframe ?? '1m';
 
   const indicators = activeChart?.indicators ?? [];
 
@@ -295,9 +281,7 @@ function App() {
   }
 
   function patchActiveChart(
-    patch: Partial<
-      Pick<ChartPanelConfig, "symbol" | "timeframe" | "indicators">
-    >,
+    patch: Partial<Pick<ChartPanelConfig, 'symbol' | 'timeframe' | 'indicators'>>,
   ) {
     if (!activeChart) return;
 
@@ -373,7 +357,7 @@ function App() {
           timeframe: c.timeframe,
         })),
       ),
-    ).catch((e) => console.error("sync_chart_streams failed", e));
+    ).catch((e) => console.error('sync_chart_streams failed', e));
   }, [hydrated, charts]);
 
   useEffect(() => {
@@ -413,9 +397,7 @@ function App() {
 
     if (info) return;
 
-    const fallback =
-      symbols.find((s) => s.ticker === DEFAULT_SETTINGS.charts[0]!.symbol) ??
-      null;
+    const fallback = symbols.find((s) => s.ticker === DEFAULT_SETTINGS.charts[0]!.symbol) ?? null;
 
     if (fallback) {
       patchActiveChart({ symbol: fallback.ticker });
@@ -435,7 +417,7 @@ function App() {
   useEffect(() => {
     if (!quickTarget) return;
 
-    if (quickTarget.kind === "drawing") {
+    if (quickTarget.kind === 'drawing') {
       if (!drawings.some((d) => d.id === quickTarget.id)) {
         setQuickTarget(null);
       }
@@ -487,9 +469,9 @@ function App() {
       drawings.filter((d) => d.id !== id),
     );
 
-    setQuickTarget((t) => (t?.kind === "drawing" && t.id === id ? null : t));
+    setQuickTarget((t) => (t?.kind === 'drawing' && t.id === id ? null : t));
 
-    setConfigTarget((t) => (t?.kind === "drawing" && t.id === id ? null : t));
+    setConfigTarget((t) => (t?.kind === 'drawing' && t.id === id ? null : t));
 
     setPendingDeleteId(null);
   }
@@ -527,9 +509,9 @@ function App() {
 
     id: BuiltinIndicatorId,
 
-    action: "visible" | "settings" | "close",
+    action: 'visible' | 'settings' | 'close',
   ) {
-    if (action === "visible") {
+    if (action === 'visible') {
       setCharts((list) =>
         list.map((c) => {
           if (c.id !== chartId) return c;
@@ -546,15 +528,15 @@ function App() {
       return;
     }
 
-    if (action === "settings") {
+    if (action === 'settings') {
       setActiveChartId(chartId);
 
-      setQuickTarget({ kind: "indicator", id });
+      setQuickTarget({ kind: 'indicator', id });
 
       return;
     }
 
-    if (action === "close") {
+    if (action === 'close') {
       setCharts((list) =>
         list.map((c) =>
           c.id === chartId
@@ -569,29 +551,27 @@ function App() {
         ),
       );
 
-      setQuickTarget((t) =>
-        t?.kind === "indicator" && t.id === id ? null : t,
-      );
+      setQuickTarget((t) => (t?.kind === 'indicator' && t.id === id ? null : t));
     }
   }
 
   const indicatorForDialog =
-    configTarget?.kind === "indicator"
+    configTarget?.kind === 'indicator'
       ? (indicators.find((c) => c.id === configTarget.id) ?? null)
       : null;
 
   const drawingForDialog =
-    configTarget?.kind === "drawing"
+    configTarget?.kind === 'drawing'
       ? (drawings.find((d) => d.id === configTarget.id) ?? null)
       : null;
 
   const quickDrawing =
-    quickTarget?.kind === "drawing"
+    quickTarget?.kind === 'drawing'
       ? (drawings.find((d) => d.id === quickTarget.id) ?? null)
       : null;
 
   const quickIndicator =
-    quickTarget?.kind === "indicator"
+    quickTarget?.kind === 'indicator'
       ? (indicators.find((c) => c.id === quickTarget.id) ?? null)
       : null;
 
@@ -628,9 +608,7 @@ function App() {
 
                 type="button"
 
-                className={
-                  tf === timeframe ? "interval-btn active" : "interval-btn"
-                }
+                className={tf === timeframe ? 'interval-btn active' : 'interval-btn'}
 
                 onClick={() => {
                   setActiveTool(null);
@@ -643,11 +621,7 @@ function App() {
             ))}
           </div>
 
-          <div
-            className="chart-workspace-controls"
-            role="group"
-            aria-label="Charts"
-          >
+          <div className="chart-workspace-controls" role="group" aria-label="Charts">
             <button
               type="button"
 
@@ -691,7 +665,7 @@ function App() {
 
             onChange={(next) => patchActiveChart({ indicators: next })}
 
-            onOpenSettings={(id) => setQuickTarget({ kind: "indicator", id })}
+            onOpenSettings={(id) => setQuickTarget({ kind: 'indicator', id })}
           />
 
           <LayoutMenu
@@ -742,9 +716,7 @@ function App() {
 
           favoriteTools={favoriteTools}
 
-          onToggleFavorite={(id) =>
-            setFavoriteTools((list) => toggleFavoriteTool(list, id))
-          }
+          onToggleFavorite={(id) => setFavoriteTools((list) => toggleFavoriteTool(list, id))}
 
           favoritesBarVisible={favoritesBarVisible}
 
@@ -802,13 +774,9 @@ function App() {
 
               onIndicatorFeature={onIndicatorFeature}
 
-              onOpenDrawingSettings={(id) =>
-                setConfigTarget({ kind: "drawing", id })
-              }
+              onOpenDrawingSettings={(id) => setConfigTarget({ kind: 'drawing', id })}
 
-              onDrawingSelect={(id) =>
-                setQuickTarget(id ? { kind: "drawing", id } : null)
-              }
+              onDrawingSelect={(id) => setQuickTarget(id ? { kind: 'drawing', id } : null)}
             />
           ) : null}
 
@@ -889,9 +857,7 @@ function App() {
 
         onClose={() => setConfigTarget(null)}
 
-        onSave={(id, patch) =>
-          onDrawingsChange(symbol, patchDrawing(drawings, id, patch))
-        }
+        onSave={(id, patch) => onDrawingsChange(symbol, patchDrawing(drawings, id, patch))}
 
         onDelete={requestDeleteDrawing}
       />
@@ -911,7 +877,7 @@ function App() {
 
         confirmDanger
       >
-        <p style={{ margin: 0, color: "var(--muted-foreground)" }}>
+        <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>
           This drawing is locked. Delete it anyway?
         </p>
       </Dialog>

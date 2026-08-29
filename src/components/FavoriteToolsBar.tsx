@@ -3,10 +3,10 @@ import {
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
-} from "react";
-import { GripVertical, Star } from "lucide-react";
-import { toolLabel, type DrawingToolId } from "../lib/drawings";
-import type { QuickBarPos } from "../lib/settings";
+} from 'react';
+import { GripVertical, Star } from 'lucide-react';
+import { toolLabel, type DrawingToolId } from '../lib/drawings';
+import type { QuickBarPos } from '../lib/settings';
 
 type Props = {
   favorites: DrawingToolId[];
@@ -16,12 +16,7 @@ type Props = {
   onBarPosChange: (pos: QuickBarPos) => void;
 };
 
-function clampPos(
-  x: number,
-  y: number,
-  el: HTMLElement,
-  parent: HTMLElement,
-): QuickBarPos {
+function clampPos(x: number, y: number, el: HTMLElement, parent: HTMLElement): QuickBarPos {
   const er = el.getBoundingClientRect();
   const pr = parent.getBoundingClientRect();
   const maxX = Math.max(0, pr.width - er.width);
@@ -72,14 +67,7 @@ export default function FavoriteToolsBar({
     const parent = el?.offsetParent as HTMLElement | null;
     if (!drag || !el || !parent) return;
     const pr = parent.getBoundingClientRect();
-    setDraft(
-      clampPos(
-        e.clientX - pr.left - drag.ox,
-        e.clientY - pr.top - drag.oy,
-        el,
-        parent,
-      ),
-    );
+    setDraft(clampPos(e.clientX - pr.left - drag.ox, e.clientY - pr.top - drag.oy, el, parent));
   }
 
   function onGripPointerUp(e: ReactPointerEvent) {
@@ -98,17 +86,13 @@ export default function FavoriteToolsBar({
   }
 
   const style: CSSProperties | undefined = display
-    ? { left: display.x, top: display.y, transform: "none" }
+    ? { left: display.x, top: display.y, transform: 'none' }
     : undefined;
 
   return (
     <div
       ref={rootRef}
-      className={
-        dragging
-          ? "quick-bar favorites-bar dragging"
-          : "quick-bar favorites-bar"
-      }
+      className={dragging ? 'quick-bar favorites-bar dragging' : 'quick-bar favorites-bar'}
       role="toolbar"
       aria-label="Favorite tools"
       style={style}
@@ -126,21 +110,12 @@ export default function FavoriteToolsBar({
       >
         <GripVertical size={14} strokeWidth={2} />
       </button>
-      <Star
-        size={12}
-        strokeWidth={2}
-        className="favorites-bar-icon"
-        aria-hidden
-      />
+      <Star size={12} strokeWidth={2} className="favorites-bar-icon" aria-hidden />
       {favorites.map((id) => (
         <button
           key={id}
           type="button"
-          className={
-            activeTool === id
-              ? "quick-bar-btn text active"
-              : "quick-bar-btn text"
-          }
+          className={activeTool === id ? 'quick-bar-btn text active' : 'quick-bar-btn text'}
           title={toolLabel(id)}
           aria-pressed={activeTool === id}
           onClick={() => onSelectTool(activeTool === id ? null : id)}

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Star } from "lucide-react";
+import { useEffect, useRef, useState } from 'react';
+import { Star } from 'lucide-react';
 import {
   GROUP_TOOL_ICONS,
   IconChevron,
@@ -10,7 +10,7 @@ import {
   IconStar,
   IconTrash,
   IconTrendLine,
-} from "./DrawingToolIcons";
+} from './DrawingToolIcons';
 import {
   DRAWING_TOOL_GROUPS,
   cycleMagnetMode,
@@ -21,7 +21,7 @@ import {
   type DrawingToolGroupId,
   type DrawingToolId,
   type OverlayMagnetMode,
-} from "../lib/drawings";
+} from '../lib/drawings';
 
 type Props = {
   activeTool: DrawingToolId | null;
@@ -69,24 +69,20 @@ export default function DrawingToolbar({
   onToggleFavoritesBar,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const [openGroupId, setOpenGroupId] = useState<DrawingToolGroupId | null>(
-    null,
-  );
+  const [openGroupId, setOpenGroupId] = useState<DrawingToolGroupId | null>(null);
   const [styleOpen, setStyleOpen] = useState(false);
   const [lastTools, setLastTools] =
     useState<Record<DrawingToolGroupId, DrawingToolId>>(initialLastTools);
 
   const showText = activeTool != null && toolNeedsText(activeTool);
-  const magnetOn = magnetMode !== "normal";
+  const magnetOn = magnetMode !== 'normal';
 
   useEffect(() => {
     if (activeTool == null) return;
     const group = findToolGroup(activeTool);
     if (!group) return;
     setLastTools((prev) =>
-      prev[group.id] === activeTool
-        ? prev
-        : { ...prev, [group.id]: activeTool },
+      prev[group.id] === activeTool ? prev : { ...prev, [group.id]: activeTool },
     );
   }, [activeTool]);
 
@@ -94,7 +90,7 @@ export default function DrawingToolbar({
     if (openGroupId == null && !styleOpen) return;
 
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         setOpenGroupId(null);
         setStyleOpen(false);
       }
@@ -106,11 +102,11 @@ export default function DrawingToolbar({
         setStyleOpen(false);
       }
     }
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onPointerDown);
     return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onPointerDown);
     };
   }, [openGroupId, styleOpen]);
 
@@ -130,42 +126,25 @@ export default function DrawingToolbar({
   }
 
   const openGroup =
-    openGroupId != null
-      ? DRAWING_TOOL_GROUPS.find((g) => g.id === openGroupId)
-      : undefined;
+    openGroupId != null ? DRAWING_TOOL_GROUPS.find((g) => g.id === openGroupId) : undefined;
 
   return (
-    <div
-      ref={rootRef}
-      className="drawing-toolbar"
-      role="toolbar"
-      aria-label="Drawing tools"
-    >
+    <div ref={rootRef} className="drawing-toolbar" role="toolbar" aria-label="Drawing tools">
       <div className="drawing-rail" role="group" aria-label="Tool groups">
         {DRAWING_TOOL_GROUPS.map((g) => {
           const lastId = lastTools[g.id];
-          const lastLabel =
-            g.tools.find((t) => t.id === lastId)?.label ?? g.label;
-          const groupActive =
-            activeTool != null && g.tools.some((t) => t.id === activeTool);
+          const lastLabel = g.tools.find((t) => t.id === lastId)?.label ?? g.label;
+          const groupActive = activeTool != null && g.tools.some((t) => t.id === activeTool);
           const menuOpen = openGroupId === g.id;
           const Icon = GROUP_TOOL_ICONS[g.id] ?? IconTrendLine;
           return (
             <div
               key={g.id}
-              className={
-                groupActive || menuOpen
-                  ? "drawing-rail-slot active"
-                  : "drawing-rail-slot"
-              }
+              className={groupActive || menuOpen ? 'drawing-rail-slot active' : 'drawing-rail-slot'}
             >
               <button
                 type="button"
-                className={
-                  groupActive
-                    ? "drawing-rail-btn active"
-                    : "drawing-rail-btn"
-                }
+                className={groupActive ? 'drawing-rail-btn active' : 'drawing-rail-btn'}
                 aria-pressed={groupActive}
                 title={lastLabel}
                 onClick={() => selectLastTool(g.id)}
@@ -174,11 +153,7 @@ export default function DrawingToolbar({
               </button>
               <button
                 type="button"
-                className={
-                  menuOpen
-                    ? "drawing-rail-menu-btn active"
-                    : "drawing-rail-menu-btn"
-                }
+                className={menuOpen ? 'drawing-rail-menu-btn active' : 'drawing-rail-menu-btn'}
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
                 title={`${g.label} options`}
@@ -192,22 +167,14 @@ export default function DrawingToolbar({
       </div>
 
       {openGroup && (
-        <div
-          className="drawing-flyout"
-          role="menu"
-          aria-label={openGroup.label}
-        >
+        <div className="drawing-flyout" role="menu" aria-label={openGroup.label}>
           <div className="drawing-flyout-title">{openGroup.label}</div>
           {openGroup.tools.map((t) => {
             const fav = favoriteTools.includes(t.id);
             return (
               <div
                 key={t.id}
-                className={
-                  activeTool === t.id
-                    ? "drawing-flyout-row active"
-                    : "drawing-flyout-row"
-                }
+                className={activeTool === t.id ? 'drawing-flyout-row active' : 'drawing-flyout-row'}
               >
                 <button
                   type="button"
@@ -219,26 +186,16 @@ export default function DrawingToolbar({
                 </button>
                 <button
                   type="button"
-                  className={
-                    fav ? "drawing-fav-btn active" : "drawing-fav-btn"
-                  }
-                  title={fav ? "Remove favorite" : "Add favorite"}
-                  aria-label={
-                    fav
-                      ? `Unfavorite ${t.label}`
-                      : `Favorite ${t.label}`
-                  }
+                  className={fav ? 'drawing-fav-btn active' : 'drawing-fav-btn'}
+                  title={fav ? 'Remove favorite' : 'Add favorite'}
+                  aria-label={fav ? `Unfavorite ${t.label}` : `Favorite ${t.label}`}
                   aria-pressed={fav}
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleFavorite(t.id);
                   }}
                 >
-                  <Star
-                    size={14}
-                    strokeWidth={2}
-                    fill={fav ? "currentColor" : "none"}
-                  />
+                  <Star size={14} strokeWidth={2} fill={fav ? 'currentColor' : 'none'} />
                 </button>
               </div>
             );
@@ -251,17 +208,9 @@ export default function DrawingToolbar({
       <div className="drawing-actions" role="group" aria-label="Actions">
         <button
           type="button"
-          className={
-            favoritesBarVisible
-              ? "drawing-rail-btn active"
-              : "drawing-rail-btn"
-          }
+          className={favoritesBarVisible ? 'drawing-rail-btn active' : 'drawing-rail-btn'}
           aria-pressed={favoritesBarVisible}
-          title={
-            favoritesBarVisible
-              ? "Hide favorites bar"
-              : "Show favorites bar"
-          }
+          title={favoritesBarVisible ? 'Hide favorites bar' : 'Show favorites bar'}
           onClick={() => {
             setOpenGroupId(null);
             setStyleOpen(false);
@@ -272,9 +221,7 @@ export default function DrawingToolbar({
         </button>
         <button
           type="button"
-          className={
-            styleOpen ? "drawing-rail-btn active" : "drawing-rail-btn"
-          }
+          className={styleOpen ? 'drawing-rail-btn active' : 'drawing-rail-btn'}
           aria-expanded={styleOpen}
           aria-haspopup="dialog"
           title="Style"
@@ -287,7 +234,7 @@ export default function DrawingToolbar({
         </button>
         <button
           type="button"
-          className={magnetOn ? "drawing-rail-btn active" : "drawing-rail-btn"}
+          className={magnetOn ? 'drawing-rail-btn active' : 'drawing-rail-btn'}
           aria-pressed={magnetOn}
           title={magnetModeLabel(magnetMode)}
           onClick={() => onMagnetMode(cycleMagnetMode(magnetMode))}
@@ -296,21 +243,14 @@ export default function DrawingToolbar({
         </button>
         <button
           type="button"
-          className={
-            drawingsHidden ? "drawing-rail-btn active" : "drawing-rail-btn"
-          }
+          className={drawingsHidden ? 'drawing-rail-btn active' : 'drawing-rail-btn'}
           aria-pressed={drawingsHidden}
-          title={drawingsHidden ? "Show drawings" : "Hide drawings"}
+          title={drawingsHidden ? 'Show drawings' : 'Hide drawings'}
           onClick={onToggleDrawingsHidden}
         >
           {drawingsHidden ? <IconEyeOff size={16} /> : <IconEye size={16} />}
         </button>
-        <button
-          type="button"
-          className="drawing-rail-btn"
-          title="Clear drawings"
-          onClick={onClear}
-        >
+        <button type="button" className="drawing-rail-btn" title="Clear drawings" onClick={onClear}>
           <IconTrash size={16} />
         </button>
       </div>
@@ -329,9 +269,7 @@ export default function DrawingToolbar({
               value={style.color}
               title="Line color"
               aria-label="Line color"
-              onChange={(e) =>
-                onStyleChange({ ...style, color: e.target.value })
-              }
+              onChange={(e) => onStyleChange({ ...style, color: e.target.value })}
             />
             {colorPresets.map((c) => (
               <button
@@ -339,8 +277,8 @@ export default function DrawingToolbar({
                 type="button"
                 className={
                   style.color.toLowerCase() === c.toLowerCase()
-                    ? "drawing-swatch active"
-                    : "drawing-swatch"
+                    ? 'drawing-swatch active'
+                    : 'drawing-swatch'
                 }
                 style={{ background: c }}
                 title={c}
@@ -369,27 +307,19 @@ export default function DrawingToolbar({
             </label>
             <button
               type="button"
-              className={
-                style.lineStyle === "solid"
-                  ? "drawing-btn active"
-                  : "drawing-btn"
-              }
-              aria-pressed={style.lineStyle === "solid"}
+              className={style.lineStyle === 'solid' ? 'drawing-btn active' : 'drawing-btn'}
+              aria-pressed={style.lineStyle === 'solid'}
               title="Solid line"
-              onClick={() => onStyleChange({ ...style, lineStyle: "solid" })}
+              onClick={() => onStyleChange({ ...style, lineStyle: 'solid' })}
             >
               Solid
             </button>
             <button
               type="button"
-              className={
-                style.lineStyle === "dashed"
-                  ? "drawing-btn active"
-                  : "drawing-btn"
-              }
-              aria-pressed={style.lineStyle === "dashed"}
+              className={style.lineStyle === 'dashed' ? 'drawing-btn active' : 'drawing-btn'}
+              aria-pressed={style.lineStyle === 'dashed'}
               title="Dashed line"
-              onClick={() => onStyleChange({ ...style, lineStyle: "dashed" })}
+              onClick={() => onStyleChange({ ...style, lineStyle: 'dashed' })}
             >
               Dash
             </button>
