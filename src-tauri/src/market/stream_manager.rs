@@ -2,6 +2,7 @@ use crate::core::model::{CandleUpdateEvent, ChartStreamSubscription};
 use crate::data::binance::{self, StreamConfig};
 use crate::events::emit_candle_update;
 use crate::market::candle_store::CandleStoreState;
+use crate::market::historical_loader::prefetch_if_empty;
 use crate::market::indicator_manager::{notify_candles_changed, IndicatorManagerState};
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -132,6 +133,12 @@ impl StreamManager {
                 refcount: 1,
                 cancel_tx,
             },
+        );
+        prefetch_if_empty(
+            self.candle_store.clone(),
+            self.indicator_manager.clone(),
+            &key.symbol,
+            &key.timeframe,
         );
         tracing::info!(
             symbol = %key.symbol,

@@ -136,6 +136,20 @@ impl IndicatorManager {
 
     pub fn on_candles_changed(&mut self, symbol: &str, timeframe: &str, change: CandleChange) {
         let symbol = symbol.to_uppercase();
+
+        if change.needs_full_recompute() {
+            let keys: std::collections::HashSet<ComputeKey> = self
+                .bindings
+                .values()
+                .filter(|b| b.compute_key.symbol == symbol && b.compute_key.timeframe == timeframe)
+                .map(|b| b.compute_key.clone())
+                .collect();
+            for key in keys {
+                self.recompute_full(&key);
+            }
+            return;
+        }
+
         self.ensure_pending_computes(&symbol, timeframe);
 
         let affected: Vec<ComputeKey> = self
@@ -146,10 +160,6 @@ impl IndicatorManager {
             .collect();
 
         for key in affected {
-            if change.needs_full_recompute() {
-                self.recompute_full(&key);
-                continue;
-            }
             self.patch_last(&key);
         }
     }
@@ -539,6 +549,18 @@ pub fn notify_candles_changed(
         Ok(mut guard) => guard.on_candles_changed(symbol, timeframe, change),
         Err(err) => tracing::error!(error = %err, "indicator manager lock poisoned"),
     }
+}
+
+pub fn notify_candles_changed_async(
+    indicator_manager: &IndicatorManagerState,
+    symbol: String,
+    timeframe: String,
+    change: CandleChange,
+) {
+    let mgr = indicator_manager.clone();
+    tauri::async_runtime::spawn(async move {
+        notify_candles_changed(&mgr, &symbol, &timeframe, change);
+    });
 }
 
 #[cfg(test)]

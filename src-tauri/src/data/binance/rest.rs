@@ -1,7 +1,7 @@
 use crate::core::model::{Candle, SymbolInfo};
 use anyhow::{anyhow, Context, Result};
 use serde_json::Value;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
 const KLINES_URL: &str = "https://api.binance.com/api/v3/klines";
@@ -11,6 +11,11 @@ const EXCHANGE_INFO_URL: &str = "https://api.binance.com/api/v3/exchangeInfo";
 static SYMBOLS_CACHE: Mutex<Option<Vec<SymbolInfo>>> = Mutex::new(None);
 
 const KLINES_PAGE_LIMIT: u16 = 1000;
+
+fn http_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    CLIENT.get_or_init(reqwest::Client::new)
+}
 
 /// Build Binance klines URL. `end_time` is open-time ms (inclusive upper bound).
 pub fn klines_url(symbol: &str, interval: &str, limit: u16, end_time: Option<i64>) -> String {
@@ -35,8 +40,7 @@ pub async fn fetch_klines(
 
     tracing::info!(%symbol, %interval, limit, ?end_time, "fetching binance klines");
 
-    let client = reqwest::Client::new();
-    let rows: Vec<Value> = client
+    let rows: Vec<Value> = http_client()
         .get(&url)
         .send()
         .await
@@ -72,8 +76,7 @@ pub async fn fetch_symbols() -> Result<Vec<SymbolInfo>> {
 
     tracing::info!("fetching binance exchangeInfo");
     let started = Instant::now();
-    let client = reqwest::Client::new();
-    let body: Value = client
+    let body: Value = http_client()
         .get(EXCHANGE_INFO_URL)
         .send()
         .await
