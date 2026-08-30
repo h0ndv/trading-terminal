@@ -7,8 +7,10 @@ import type {
   IndicatorBootstrapEvent,
   IndicatorPatchEvent,
   IndicatorSubscription,
+  OrderBookSnapshot,
   SymbolInfo,
   TickerStats,
+  TradeTick,
 } from './types';
 import {
   setRustIndicatorBootstrap,
@@ -238,4 +240,148 @@ export function subscribeTicker(symbol: string, callback: TickerCallback): () =>
       tickerSubscriberCount = 0;
     }
   };
+}
+
+export function syncMarketPanel(symbols: string[]): Promise<void> {
+  return invoke('sync_market_panel', { symbols });
+}
+
+const TAPE_MAX = 200;
+
+type BookCallback = (book: OrderBookSnapshot) => void;
+type TradeCallback = (tick: TradeTick) => void;
+
+const bookCache = new Map<string, OrderBookSnapshot>();
+const tapeCache = new Map<string, TradeTick[]>();
+
+const bookListeners = new Map<string, Set<BookCallback>>();
+const tradeListeners = new Map<string, Set<TradeCallback>>();
+
+let bookUnlisten: UnlistenFn | null = null;
+let tradeUnlisten: UnlistenFn | null = null;
+let marketPanelSubscriberCount = 0;
+
+let pendingBooks = new Map<string, OrderBookSnapshot>();
+let bookRaf = 0;
+
+function flushPendingBooks() {
+  bookRaf = 0;
+  if (pendingBooks.size === 0) return;
+  for (const book of pendingBooks.values()) {
+    const key = book.symbol.toUpperCase();
+    bookCache.set(key, book);
+    bookListeners.get(key)?.forEach((cb) => cb(book));
+  }
+  pendingBooks.clear();
+}
+
+function scheduleBookFlush(book: OrderBookSnapshot) {
+  pendingBooks.set(book.symbol.toUpperCase(), book);
+  if (bookRaf !== 0) return;
+  bookRaf = requestAnimationFrame(flushPendingBooks);
+}
+
+function pushTapeTick(tick: TradeTick) {
+  const key = tick.symbol.toUpperCase();
+  let buf = tapeCache.get(key);
+  if (!buf) {
+    buf = [];
+    tapeCache.set(key, buf);
+  }
+  buf.push(tick);
+  if (buf.length > TAPE_MAX) {
+    buf.splice(0, buf.length - TAPE_MAX);
+  }
+  tradeListeners.get(key)?.forEach((cb) => cb(tick));
+}
+
+async function ensureMarketPanelListeners(): Promise<void> {
+  if (!bookUnlisten) {
+    bookUnlisten = await listen<OrderBookSnapshot>('book-update', (event) => {
+      scheduleBookFlush(event.payload);
+    });
+  }
+  if (!tradeUnlisten) {
+    tradeUnlisten = await listen<TradeTick>('trade-update', (event) => {
+      pushTapeTick(event.payload);
+    });
+  }
+}
+
+export function getCachedOrderBook(symbol: string): OrderBookSnapshot | undefined {
+  return bookCache.get(symbol.toUpperCase());
+}
+
+export function getCachedTrades(symbol: string): TradeTick[] {
+  return tapeCache.get(symbol.toUpperCase()) ?? [];
+}
+
+export function subscribeOrderBook(symbol: string, callback: BookCallback): () => void {
+  const key = symbol.toUpperCase();
+  let set = bookListeners.get(key);
+  if (!set) {
+    set = new Set();
+    bookListeners.set(key, set);
+  }
+  set.add(callback);
+  marketPanelSubscriberCount += 1;
+  void ensureMarketPanelListeners();
+
+  return () => {
+    const bucket = bookListeners.get(key);
+    if (!bucket) return;
+    bucket.delete(callback);
+    if (bucket.size === 0) bookListeners.delete(key);
+    marketPanelSubscriberCount -= 1;
+    if (marketPanelSubscriberCount <= 0) {
+      void bookUnlisten?.();
+      void tradeUnlisten?.();
+      bookUnlisten = null;
+      tradeUnlisten = null;
+      marketPanelSubscriberCount = 0;
+      if (bookRaf !== 0) {
+        cancelAnimationFrame(bookRaf);
+        bookRaf = 0;
+        pendingBooks.clear();
+      }
+    }
+  };
+}
+
+export function subscribeTrades(symbol: string, callback: TradeCallback): () => void {
+  const key = symbol.toUpperCase();
+  let set = tradeListeners.get(key);
+  if (!set) {
+    set = new Set();
+    tradeListeners.set(key, set);
+  }
+  set.add(callback);
+  marketPanelSubscriberCount += 1;
+  void ensureMarketPanelListeners();
+
+  return () => {
+    const bucket = tradeListeners.get(key);
+    if (!bucket) return;
+    bucket.delete(callback);
+    if (bucket.size === 0) tradeListeners.delete(key);
+    marketPanelSubscriberCount -= 1;
+    if (marketPanelSubscriberCount <= 0) {
+      void bookUnlisten?.();
+      void tradeUnlisten?.();
+      bookUnlisten = null;
+      tradeUnlisten = null;
+      marketPanelSubscriberCount = 0;
+      if (bookRaf !== 0) {
+        cancelAnimationFrame(bookRaf);
+        bookRaf = 0;
+        pendingBooks.clear();
+      }
+    }
+  };
+}
+
+export function clearMarketPanelCache(symbol: string): void {
+  const key = symbol.toUpperCase();
+  bookCache.delete(key);
+  tapeCache.delete(key);
 }

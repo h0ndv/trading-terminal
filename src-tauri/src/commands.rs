@@ -2,6 +2,7 @@ use crate::core::model::{Candle, ChartStreamSubscription, IndicatorSubscription,
 use crate::data::binance;
 use crate::market::candle_store::CandleStoreState;
 use crate::market::indicator_manager::{notify_candles_changed, IndicatorManagerState};
+use crate::market::market_panel_manager::MarketPanelManagerState;
 use crate::market::stream_manager::StreamManagerState;
 use crate::market::ticker_manager::TickerManagerState;
 use tauri::State;
@@ -77,6 +78,17 @@ pub fn sync_indicator_subscriptions(
     tracing::info!(count = subscriptions.len(), "sync_indicator_subscriptions");
     let mut guard = manager.0.lock().map_err(|e| e.to_string())?;
     guard.sync(subscriptions);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sync_market_panel(
+    manager: State<'_, MarketPanelManagerState>,
+    symbols: Vec<String>,
+) -> Result<(), String> {
+    tracing::info!(count = symbols.len(), "sync_market_panel");
+    let mut guard = manager.0.lock().map_err(|e| e.to_string())?;
+    guard.sync(symbols);
     Ok(())
 }
 

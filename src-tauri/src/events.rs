@@ -1,5 +1,6 @@
 use crate::core::model::{
-    CandleUpdateEvent, IndicatorBootstrapEvent, IndicatorPatchEvent, IndicatorSeries, TickerStats,
+    CandleUpdateEvent, IndicatorBootstrapEvent, IndicatorPatchEvent, IndicatorSeries,
+    OrderBookSnapshot, TickerStats, TradeTick,
 };
 use tauri::{AppHandle, Emitter};
 
@@ -7,6 +8,8 @@ pub const CANDLE_UPDATE: &str = "candle-update";
 pub const TICKER_UPDATE: &str = "ticker-update";
 pub const INDICATOR_BOOTSTRAP: &str = "indicator-bootstrap";
 pub const INDICATOR_PATCH: &str = "indicator-patch";
+pub const BOOK_UPDATE: &str = "book-update";
+pub const TRADE_UPDATE: &str = "trade-update";
 
 pub fn emit_candle_update(app: &AppHandle, event: &CandleUpdateEvent) {
     if let Err(e) = app.emit(CANDLE_UPDATE, event) {
@@ -57,5 +60,17 @@ pub fn emit_indicator_patch(
     };
     if let Err(e) = app.emit(INDICATOR_PATCH, event) {
         tracing::warn!(error = %e, "failed to emit indicator-patch");
+    }
+}
+
+pub fn emit_book_update(app: &AppHandle, book: &OrderBookSnapshot) {
+    if let Err(e) = app.emit(BOOK_UPDATE, book) {
+        tracing::warn!(error = %e, "failed to emit book-update");
+    }
+}
+
+pub fn emit_trade_update(app: &AppHandle, tick: &TradeTick) {
+    if let Err(e) = app.emit(TRADE_UPDATE, tick) {
+        tracing::warn!(error = %e, "failed to emit trade-update");
     }
 }

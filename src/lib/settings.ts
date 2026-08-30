@@ -25,13 +25,14 @@ import {
   type ChartPanelConfig,
   type WorkspaceLayout,
 } from './workspace';
+import type { MarketDockTab } from './types';
 
 export { VALID_INTERVALS } from './workspace';
 
 export type QuickBarPos = { x: number; y: number };
 
 export type AppSettings = {
-  version: 7;
+  version: 8;
   charts: ChartPanelConfig[];
   activeChartId: ChartId;
   workspaceLayout: WorkspaceLayout | null;
@@ -44,6 +45,8 @@ export type AppSettings = {
   syncTimeframe: boolean;
   themeId: string;
   themeMode: ThemeMode;
+  marketDockVisible: boolean;
+  marketDockTab: MarketDockTab;
 };
 
 export const LAYOUT_EXPORT_KIND = 'trading-terminal-layout' as const;
@@ -61,7 +64,7 @@ const defaultCharts = (): ChartPanelConfig[] => [
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  version: 7,
+  version: 8,
   charts: defaultCharts(),
   activeChartId: '',
   workspaceLayout: null,
@@ -74,6 +77,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   syncTimeframe: false,
   themeId: DEFAULT_THEME_ID,
   themeMode: DEFAULT_THEME_MODE,
+  marketDockVisible: true,
+  marketDockTab: 'book',
 };
 
 DEFAULT_SETTINGS.activeChartId = DEFAULT_SETTINGS.charts[0]!.id;
@@ -129,8 +134,9 @@ function migrateFromLegacy(partial: LegacySettings): {
 
 export function normalizeSettings(partial: Partial<AppSettings> & LegacySettings): AppSettings {
   const migrated = migrateFromLegacy(partial);
+  const tab = partial.marketDockTab === 'tape' ? 'tape' : 'book';
   return {
-    version: 7,
+    version: 8,
     charts: migrated.charts,
     activeChartId: migrated.activeChartId,
     workspaceLayout: migrated.workspaceLayout,
@@ -161,6 +167,11 @@ export function normalizeSettings(partial: Partial<AppSettings> & LegacySettings
     themeMode: normalizeThemeMode(
       partial.themeMode === undefined ? DEFAULT_SETTINGS.themeMode : partial.themeMode,
     ),
+    marketDockVisible:
+      partial.marketDockVisible === undefined
+        ? DEFAULT_SETTINGS.marketDockVisible
+        : Boolean(partial.marketDockVisible),
+    marketDockTab: tab,
   };
 }
 
@@ -184,9 +195,12 @@ export async function loadSettings(): Promise<AppSettings> {
     const syncTimeframe = await store.get<boolean>('syncTimeframe');
     const themeId = await store.get<string>('themeId');
     const themeMode = await store.get<ThemeMode>('themeMode');
+    const marketDockVisible = await store.get<boolean>('marketDockVisible');
+    const marketDockTab = await store.get<MarketDockTab>('marketDockTab');
 
     return normalizeSettings({
-      version: version === 7 || version === 6 ? 7 : undefined,
+      version:
+        version === 8 || version === 7 || version === 6 ? 8 : undefined,
       charts: charts ?? undefined,
       activeChartId: activeChartId ?? undefined,
       workspaceLayout: workspaceLayout ?? undefined,
@@ -202,6 +216,8 @@ export async function loadSettings(): Promise<AppSettings> {
       syncTimeframe: syncTimeframe ?? undefined,
       themeId: themeId ?? undefined,
       themeMode: themeMode ?? undefined,
+      marketDockVisible: marketDockVisible ?? undefined,
+      marketDockTab: marketDockTab ?? undefined,
     });
   } catch (e) {
     console.error('loadSettings failed', e);
@@ -236,6 +252,8 @@ export async function saveSettings(partial: Partial<AppSettings>): Promise<void>
     await store.set('syncTimeframe', next.syncTimeframe);
     await store.set('themeId', next.themeId);
     await store.set('themeMode', next.themeMode);
+    await store.set('marketDockVisible', next.marketDockVisible);
+    await store.set('marketDockTab', next.marketDockTab);
     await store.save();
   } catch (e) {
     console.error('saveSettings failed', e);

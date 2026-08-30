@@ -279,6 +279,8 @@ export default function ChartView({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const pushBarRef = useRef<((data: KLineData) => void) | null>(null);
+  const offCandleRef = useRef<(() => void) | null>(null);
+  const historyReadyRef = useRef(false);
   const appliedRef = useRef(new Map<BuiltinIndicatorId, Applied>());
   const orderKeyRef = useRef('');
   const drawingsRestoredRef = useRef(false);
@@ -358,6 +360,7 @@ export default function ChartView({
     appliedRef.current = new Map();
     orderKeyRef.current = '';
     drawingsRestoredRef.current = false;
+    historyReadyRef.current = false;
 
     applyChartTheme(chart, themeTokensRef.current);
 
@@ -394,15 +397,24 @@ export default function ChartView({
             forward: bars.length >= KLINES_PAGE_LIMIT,
             backward: false,
           });
+          historyReadyRef.current = true;
         } catch (e) {
           console.error('getBars failed', e);
           callback([], { forward: false, backward: false });
+          historyReadyRef.current = true;
         }
       },
       subscribeBar: ({ callback }) => {
         pushBarRef.current = callback;
+        offCandleRef.current?.();
+        offCandleRef.current = streamRef.current.onCandle((candle) => {
+          if (!historyReadyRef.current) return;
+          callback(candleToBar(candle));
+        });
       },
       unsubscribeBar: () => {
+        offCandleRef.current?.();
+        offCandleRef.current = null;
         pushBarRef.current = null;
       },
     });
@@ -414,17 +426,15 @@ export default function ChartView({
     });
     chart.setPeriod(toPeriod(timeframe));
 
-    const offCandle = streamRef.current.onCandle((candle) => {
-      pushBarRef.current?.(candleToBar(candle));
-    });
-
     const onResize = () => chart.resize();
     window.addEventListener('resize', onResize);
 
     return () => {
-      offCandle();
+      offCandleRef.current?.();
+      offCandleRef.current = null;
       window.removeEventListener('resize', onResize);
       pushBarRef.current = null;
+      historyReadyRef.current = false;
       appliedRef.current = new Map();
       orderKeyRef.current = '';
       drawingsRestoredRef.current = false;

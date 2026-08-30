@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { LayoutGrid, Link2, Plus, Unlink, X } from 'lucide-react';
+import { LayoutGrid, Link2, PanelRight, Plus, Unlink, X } from 'lucide-react';
 
 import './App.css';
 
 import ChartWorkspace from './components/ChartWorkspace';
+
+import MarketDock from './components/MarketDock';
 
 import DrawingSettingsDialog from './components/DrawingSettingsDialog';
 
@@ -66,11 +68,12 @@ import {
 import {
   syncChartStreams,
   syncIndicatorSubscriptions,
+  syncMarketPanel,
   syncTickerSymbols,
   toStreamSubscriptions,
 } from './lib/tauriBridge';
 
-import type { SymbolInfo } from './lib/types';
+import type { MarketDockTab, SymbolInfo } from './lib/types';
 
 import { toggleWatchlist } from './lib/watchlist';
 
@@ -142,6 +145,14 @@ function App() {
 
   const [themeMode, setThemeMode] = useState<ThemeMode>(DEFAULT_SETTINGS.themeMode);
 
+  const [marketDockVisible, setMarketDockVisible] = useState(
+    DEFAULT_SETTINGS.marketDockVisible,
+  );
+
+  const [marketDockTab, setMarketDockTab] = useState<MarketDockTab>(
+    DEFAULT_SETTINGS.marketDockTab,
+  );
+
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const { symbols, loading } = useSymbolCatalog();
@@ -209,6 +220,10 @@ function App() {
 
     setThemeMode(s.themeMode);
 
+    setMarketDockVisible(s.marketDockVisible);
+
+    setMarketDockTab(s.marketDockTab);
+
     const tokens = resolveThemeTokens(s.themeId, s.themeMode);
 
     setDrawStyle((prev) =>
@@ -228,7 +243,7 @@ function App() {
 
   function getCurrentSettings(): AppSettings {
     return {
-      version: 7,
+      version: 8,
 
       charts,
 
@@ -253,6 +268,10 @@ function App() {
       themeId,
 
       themeMode,
+
+      marketDockVisible,
+
+      marketDockTab,
     };
   }
 
@@ -402,6 +421,13 @@ function App() {
   useEffect(() => {
     if (!hydrated) return;
 
+    const symbols = marketDockVisible && symbol ? [symbol.toUpperCase()] : [];
+    syncMarketPanel(symbols).catch((e) => console.error('sync_market_panel failed', e));
+  }, [hydrated, marketDockVisible, symbol]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
     syncTickerSymbols(collectTickerSymbols(charts, watchlist)).catch((e) =>
       console.error('sync_ticker_symbols failed', e),
     );
@@ -445,7 +471,21 @@ function App() {
     themeId,
 
     themeMode,
+
+    marketDockVisible,
+
+    marketDockTab,
   ]);
+
+  useEffect(() => {
+    if (!hydrated || symbols.length === 0) return;
+
+    const catalog = new Set(symbols.map((s) => s.ticker));
+    setWatchlist((list) => {
+      const next = list.filter((t) => catalog.has(t));
+      return next.length === list.length ? list : next;
+    });
+  }, [hydrated, symbols]);
 
   useEffect(() => {
     if (!hydrated || symbols.length === 0 || !activeChart) return;
@@ -499,6 +539,12 @@ function App() {
     setActiveTool(null);
 
     patchActiveChart({ symbol: info.ticker });
+  }
+
+  function onSelectWatchlistTicker(ticker: string) {
+    setActiveTool(null);
+
+    patchActiveChart({ symbol: ticker.trim().toUpperCase() });
   }
 
   function onToggleWatchlist(ticker: string) {
@@ -741,6 +787,17 @@ function App() {
               <LayoutGrid size={14} />
               {charts.length}/{MAX_CHARTS}
             </span>
+
+            <button
+              type="button"
+              className={marketDockVisible ? 'workspace-btn active' : 'workspace-btn'}
+              title={marketDockVisible ? 'Hide market panel' : 'Show market panel'}
+              aria-label={marketDockVisible ? 'Hide market panel' : 'Show market panel'}
+              aria-pressed={marketDockVisible}
+              onClick={() => setMarketDockVisible((v) => !v)}
+            >
+              <PanelRight size={16} />
+            </button>
           </div>
 
           <IndicatorPanel
@@ -814,6 +871,8 @@ function App() {
           symbols={symbols}
 
           onSelect={onSelectSymbol}
+
+          onSelectTicker={onSelectWatchlistTicker}
 
           onRemove={onToggleWatchlist}
 
@@ -919,6 +978,16 @@ function App() {
             }
           />
         </main>
+
+        {marketDockVisible && activeInfo && (
+          <MarketDock
+            symbol={symbol}
+            tab={marketDockTab}
+            onTabChange={setMarketDockTab}
+            pricePrecision={activeInfo.price_precision}
+            volumePrecision={activeInfo.volume_precision}
+          />
+        )}
       </div>
 
       <IndicatorSettingsDialog

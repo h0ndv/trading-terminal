@@ -95,3 +95,26 @@ pub struct TickerStats {
     pub volume: f64,
     pub quote_volume: f64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BookLevel {
+    pub price: f64,
+    pub qty: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderBookSnapshot {
+    pub symbol: String,
+    pub bids: Vec<BookLevel>,
+    pub asks: Vec<BookLevel>,
+    pub update_id: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TradeTick {
+    pub symbol: String,
+    pub price: f64,
+    pub qty: f64,
+    pub time: i64,
+    pub is_buyer_maker: bool,
+}

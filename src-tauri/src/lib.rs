@@ -12,6 +12,7 @@ pub mod market;
 
 use market::candle_store::CandleStoreState;
 use market::indicator_manager::IndicatorManagerState;
+use market::market_panel_manager::MarketPanelManagerState;
 use market::stream_manager::StreamManagerState;
 use market::ticker_manager::TickerManagerState;
 use tauri::Manager;
@@ -42,7 +43,8 @@ pub fn run() {
                 candle_store,
                 indicator_manager,
             ));
-            app.manage(TickerManagerState::new(handle));
+            app.manage(TickerManagerState::new(handle.clone()));
+            app.manage(MarketPanelManagerState::new(handle));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -51,6 +53,7 @@ pub fn run() {
             commands::sync_chart_streams,
             commands::sync_ticker_symbols,
             commands::sync_indicator_subscriptions,
+            commands::sync_market_panel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -8,10 +8,11 @@ type WatchlistRowProps = {
   info: SymbolInfo | undefined;
   active: boolean;
   onSelect: (info: SymbolInfo) => void;
+  onSelectTicker: (ticker: string) => void;
   onRemove: (ticker: string) => void;
 };
 
-function WatchlistRow({ ticker, info, active, onSelect, onRemove }: WatchlistRowProps) {
+function WatchlistRow({ ticker, info, active, onSelect, onSelectTicker, onRemove }: WatchlistRowProps) {
   const stats = useTicker(ticker);
   const pricePrecision = info?.price_precision ?? 2;
 
@@ -20,10 +21,10 @@ function WatchlistRow({ ticker, info, active, onSelect, onRemove }: WatchlistRow
       <button
         type="button"
         className={active ? 'watchlist-row active' : 'watchlist-row'}
-        disabled={!info}
         title={info ? undefined : 'Symbol not in catalog'}
         onClick={() => {
           if (info) onSelect(info);
+          else onSelectTicker(ticker);
         }}
       >
         <span className="watchlist-row-main">
@@ -57,6 +58,7 @@ type Props = {
   activeSymbol: string;
   symbols: SymbolInfo[];
   onSelect: (info: SymbolInfo) => void;
+  onSelectTicker: (ticker: string) => void;
   onRemove: (ticker: string) => void;
   onAddCurrent: () => void;
 };
@@ -66,6 +68,7 @@ export default function Watchlist({
   activeSymbol,
   symbols,
   onSelect,
+  onSelectTicker,
   onRemove,
   onAddCurrent,
 }: Props) {
@@ -99,6 +102,7 @@ export default function Watchlist({
               info={byTicker.get(ticker)}
               active={ticker === activeSymbol}
               onSelect={onSelect}
+              onSelectTicker={onSelectTicker}
               onRemove={onRemove}
             />
           ))

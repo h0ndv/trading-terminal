@@ -73,3 +73,25 @@ export interface IndicatorPatchEvent {
   timeframe: string;
   point: IndicatorPoint;
 }
+
+export interface BookLevel {
+  price: number;
+  qty: number;
+}
+
+export interface OrderBookSnapshot {
+  symbol: string;
+  bids: BookLevel[];
+  asks: BookLevel[];
+  update_id: number;
+}
+
+export interface TradeTick {
+  symbol: string;
+  price: number;
+  qty: number;
+  time: number;
+  is_buyer_maker: boolean;
+}
+
+export type MarketDockTab = 'book' | 'tape';
