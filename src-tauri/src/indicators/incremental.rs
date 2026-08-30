@@ -1,11 +1,13 @@
 use crate::core::model::Candle;
 use crate::core::model::IndicatorPoint;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 
+#[derive(Clone)]
 pub struct SmaState {
     period: usize,
     key: String,
-    window: Vec<f64>,
+    window: VecDeque<f64>,
     sum: f64,
 }
 
@@ -18,7 +20,7 @@ impl SmaState {
         Self {
             period,
             key: key.into(),
-            window: Vec::new(),
+            window: VecDeque::new(),
             sum: 0.0,
         }
     }
@@ -29,10 +31,12 @@ impl SmaState {
             values.insert(self.key.clone(), None);
             return IndicatorPoint { timestamp, values };
         }
-        self.window.push(value);
+        self.window.push_back(value);
         self.sum += value;
         if self.window.len() > self.period {
-            self.sum -= self.window.remove(0);
+            if let Some(old) = self.window.pop_front() {
+                self.sum -= old;
+            }
         }
         let v = if self.window.len() >= self.period {
             Some(self.sum / self.period as f64)
@@ -44,6 +48,7 @@ impl SmaState {
     }
 }
 
+#[derive(Clone)]
 pub struct EmaState {
     period: usize,
     key: String,
@@ -103,6 +108,7 @@ impl EmaState {
     }
 }
 
+#[derive(Clone)]
 pub struct WilderRsiState {
     period: usize,
     key: String,

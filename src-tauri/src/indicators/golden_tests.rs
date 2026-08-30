@@ -7,7 +7,9 @@ fn golden_batch_matches_fixture() {
     let candles = sample_candles();
     for case in golden_cases() {
         let indicator = get_indicator(&case.indicator_id).expect("indicator");
-        let series = indicator.compute_all(&candles, &case.calc_params);
+        let series = indicator
+            .compute_all(&candles, &case.calc_params)
+            .expect("batch");
         for expected in &case.points {
             let actual = series
                 .points
@@ -36,7 +38,9 @@ fn incremental_path_matches_batch_all_indicators() {
     let candles = sample_candles();
     for case in golden_cases() {
         let indicator = get_indicator(&case.indicator_id).expect("indicator");
-        let batch = indicator.compute_all(&candles, &case.calc_params);
+        let batch = indicator
+            .compute_all(&candles, &case.calc_params)
+            .expect("batch");
         let incremental =
             compute_incremental(indicator, &case.calc_params, &candles).expect("incremental");
         assert_eq!(
@@ -60,11 +64,7 @@ fn incremental_path_matches_batch_all_indicators() {
                     ),
                     _ => panic!(
                         "{} key {} ts {}: batch {:?} vs incremental {:?}",
-                        case.indicator_id,
-                        key,
-                        b.timestamp,
-                        bv,
-                        iv
+                        case.indicator_id, key, b.timestamp, bv, iv
                     ),
                 }
             }

@@ -1,6 +1,4 @@
-use crate::core::model::{
-    Candle, ChartStreamSubscription, IndicatorSubscription, SymbolInfo,
-};
+use crate::core::model::{Candle, ChartStreamSubscription, IndicatorSubscription, SymbolInfo};
 use crate::data::binance;
 use crate::market::candle_store::CandleStoreState;
 use crate::market::indicator_manager::{notify_candles_changed, IndicatorManagerState};
@@ -25,16 +23,17 @@ pub async fn get_historical(
             e.to_string()
         })?;
 
-    let prepended = {
+    {
         let mut store = candle_store.0.lock().map_err(|e| e.to_string())?;
         if end_time.is_some() {
-            store.prepend(&symbol, &timeframe, candles.clone())
+            if let Some(change) = store.prepend(&symbol, &timeframe, candles.clone()) {
+                notify_candles_changed(&indicator_manager, &symbol, &timeframe, change);
+            }
         } else {
-            store.replace(&symbol, &timeframe, candles.clone());
-            false
+            let change = store.replace(&symbol, &timeframe, candles.clone());
+            notify_candles_changed(&indicator_manager, &symbol, &timeframe, change);
         }
-    };
-    notify_candles_changed(&indicator_manager, &symbol, &timeframe, prepended);
+    }
 
     Ok(candles)
 }

@@ -2,7 +2,9 @@ use crate::core::model::Candle;
 use crate::indicators::incremental::typical_price;
 use crate::indicators::traits::{Indicator, IndicatorState};
 use crate::indicators::types::{IndicatorError, IndicatorId, IndicatorPoint, IndicatorSeries};
+use crate::indicators::warm::compute_series;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 
 pub struct CciIndicator;
 
@@ -21,51 +23,27 @@ impl Indicator for CciIndicator {
         Ok(())
     }
 
-    fn compute_all(&self, candles: &[Candle], params: &[f64]) -> IndicatorSeries {
-        let period = params[0] as usize;
-        let tps: Vec<f64> = candles.iter().map(typical_price).collect();
-        let points = candles
-            .iter()
-            .enumerate()
-            .map(|(i, c)| cci_point(&tps, i, period, c.timestamp))
-            .collect();
-        IndicatorSeries {
-            indicator_id: "CCI".into(),
-            calc_params: params.to_vec(),
-            points,
-        }
+    fn compute_all(
+        &self,
+        candles: &[Candle],
+        params: &[f64],
+    ) -> Result<IndicatorSeries, IndicatorError> {
+        compute_series(self, params, candles)
     }
 
     fn create_state(&self, params: &[f64]) -> Result<Box<dyn IndicatorState>, IndicatorError> {
         self.validate_params(params)?;
         Ok(Box::new(CciState {
             period: params[0] as usize,
-            window: Vec::new(),
+            window: VecDeque::new(),
         }))
     }
 }
 
-fn cci_point(tps: &[f64], index: usize, period: usize, timestamp: i64) -> IndicatorPoint {
-    let mut values = HashMap::new();
-    if period == 0 || index + 1 < period {
-        values.insert("cci".into(), None);
-        return IndicatorPoint { timestamp, values };
-    }
-    let slice = &tps[index + 1 - period..=index];
-    let sma: f64 = slice.iter().sum::<f64>() / period as f64;
-    let md = slice.iter().map(|tp| (tp - sma).abs()).sum::<f64>() / period as f64;
-    let cci = if md == 0.0 {
-        0.0
-    } else {
-        (tps[index] - sma) / (0.015 * md)
-    };
-    values.insert("cci".into(), Some(cci));
-    IndicatorPoint { timestamp, values }
-}
-
+#[derive(Clone)]
 struct CciState {
     period: usize,
-    window: Vec<f64>,
+    window: VecDeque<f64>,
 }
 
 impl IndicatorState for CciState {
@@ -76,9 +54,9 @@ impl IndicatorState for CciState {
         _prev: Option<&Candle>,
     ) -> IndicatorPoint {
         let tp = typical_price(candle);
-        self.window.push(tp);
+        self.window.push_back(tp);
         if self.window.len() > self.period {
-            self.window.remove(0);
+            self.window.pop_front();
         }
         let mut values = HashMap::new();
         if self.window.len() < self.period {
@@ -89,12 +67,7 @@ impl IndicatorState for CciState {
             };
         }
         let sma: f64 = self.window.iter().sum::<f64>() / self.period as f64;
-        let md = self
-            .window
-            .iter()
-            .map(|v| (v - sma).abs())
-            .sum::<f64>()
-            / self.period as f64;
+        let md = self.window.iter().map(|v| (v - sma).abs()).sum::<f64>() / self.period as f64;
         let cci = if md == 0.0 {
             0.0
         } else {
@@ -109,6 +82,10 @@ impl IndicatorState for CciState {
 
     fn warmup_len(&self) -> usize {
         self.period
+    }
+
+    fn duplicate(&self) -> Box<dyn IndicatorState> {
+        Box::new(self.clone())
     }
 }
 
@@ -129,7 +106,7 @@ mod tests {
                 volume: 1.0,
             })
             .collect();
-        let series = ind.compute_all(&candles, &[20.0]);
+        let series = ind.compute_all(&candles, &[20.0]).unwrap();
         let last = series.points.last().unwrap().values["cci"].unwrap();
         assert!(last.abs() < 1e-9);
     }

@@ -2,6 +2,7 @@ use crate::core::model::Candle;
 use crate::indicators::incremental::SmaState;
 use crate::indicators::traits::{Indicator, IndicatorState};
 use crate::indicators::types::{IndicatorError, IndicatorId, IndicatorPoint, IndicatorSeries};
+use crate::indicators::warm::compute_series;
 
 pub struct MaIndicator;
 
@@ -20,30 +21,12 @@ impl Indicator for MaIndicator {
         Ok(())
     }
 
-    fn compute_all(&self, candles: &[Candle], params: &[f64]) -> IndicatorSeries {
-        self.validate_params(params).ok();
-        let periods: Vec<usize> = params.iter().map(|p| *p as usize).collect();
-        let mut states: Vec<SmaState> = periods
-            .iter()
-            .enumerate()
-            .map(|(i, p)| SmaState::new(*p, figure_key(i)))
-            .collect();
-        let points = candles
-            .iter()
-            .map(|c| {
-                let mut merged = IndicatorPoint::empty(c.timestamp);
-                for state in &mut states {
-                    let pt = state.on_value(c.timestamp, c.close);
-                    merged.values.extend(pt.values);
-                }
-                merged
-            })
-            .collect();
-        IndicatorSeries {
-            indicator_id: "MA".into(),
-            calc_params: params.to_vec(),
-            points,
-        }
+    fn compute_all(
+        &self,
+        candles: &[Candle],
+        params: &[f64],
+    ) -> Result<IndicatorSeries, IndicatorError> {
+        compute_series(self, params, candles)
     }
 
     fn create_state(&self, params: &[f64]) -> Result<Box<dyn IndicatorState>, IndicatorError> {
@@ -58,6 +41,7 @@ impl Indicator for MaIndicator {
     }
 }
 
+#[derive(Clone)]
 struct MaState {
     states: Vec<SmaState>,
 }
@@ -79,6 +63,10 @@ impl IndicatorState for MaState {
 
     fn warmup_len(&self) -> usize {
         self.states.iter().map(|s| s.period()).max().unwrap_or(0)
+    }
+
+    fn duplicate(&self) -> Box<dyn IndicatorState> {
+        Box::new(self.clone())
     }
 }
 
@@ -108,12 +96,14 @@ mod tests {
     #[test]
     fn ma_two_periods() {
         let ind = MaIndicator;
-        let data: Vec<_> = (1..=4).map(|i| {
-            let mut c = candle(i as f64);
-            c.timestamp = i;
-            c
-        }).collect();
-        let series = ind.compute_all(&data, &[2.0, 3.0]);
+        let data: Vec<_> = (1..=4)
+            .map(|i| {
+                let mut c = candle(i as f64);
+                c.timestamp = i;
+                c
+            })
+            .collect();
+        let series = ind.compute_all(&data, &[2.0, 3.0]).unwrap();
         assert_eq!(series.points.len(), 4);
         assert!(series.points[0].values.get("ma1").unwrap().is_none());
         assert!((series.points[1].values["ma1"].unwrap() - 1.5).abs() < 1e-9);

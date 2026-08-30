@@ -1,7 +1,9 @@
 use crate::core::model::Candle;
 use crate::indicators::traits::{Indicator, IndicatorState};
 use crate::indicators::types::{IndicatorError, IndicatorId, IndicatorPoint, IndicatorSeries};
+use crate::indicators::warm::compute_series;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 
 pub struct BollIndicator;
 
@@ -20,19 +22,12 @@ impl Indicator for BollIndicator {
         Ok(())
     }
 
-    fn compute_all(&self, candles: &[Candle], params: &[f64]) -> IndicatorSeries {
-        let period = params[0] as usize;
-        let mult = params[1];
-        let points = candles
-            .iter()
-            .enumerate()
-            .map(|(i, c)| boll_point(candles, i, period, mult, c.timestamp))
-            .collect();
-        IndicatorSeries {
-            indicator_id: "BOLL".into(),
-            calc_params: params.to_vec(),
-            points,
-        }
+    fn compute_all(
+        &self,
+        candles: &[Candle],
+        params: &[f64],
+    ) -> Result<IndicatorSeries, IndicatorError> {
+        compute_series(self, params, candles)
     }
 
     fn create_state(&self, params: &[f64]) -> Result<Box<dyn IndicatorState>, IndicatorError> {
@@ -40,46 +35,16 @@ impl Indicator for BollIndicator {
         Ok(Box::new(BollState {
             period: params[0] as usize,
             mult: params[1],
-            window: Vec::new(),
+            window: VecDeque::new(),
         }))
     }
 }
 
-fn boll_point(
-    candles: &[Candle],
-    index: usize,
-    period: usize,
-    mult: f64,
-    timestamp: i64,
-) -> IndicatorPoint {
-    let mut values = HashMap::new();
-    if period == 0 || index + 1 < period {
-        values.insert("mid".into(), None);
-        values.insert("upper".into(), None);
-        values.insert("lower".into(), None);
-        return IndicatorPoint { timestamp, values };
-    }
-    let slice = &candles[index + 1 - period..=index];
-    let mid: f64 = slice.iter().map(|c| c.close).sum::<f64>() / period as f64;
-    let variance = slice
-        .iter()
-        .map(|c| {
-            let d = c.close - mid;
-            d * d
-        })
-        .sum::<f64>()
-        / period as f64;
-    let std = variance.sqrt();
-    values.insert("mid".into(), Some(mid));
-    values.insert("upper".into(), Some(mid + mult * std));
-    values.insert("lower".into(), Some(mid - mult * std));
-    IndicatorPoint { timestamp, values }
-}
-
+#[derive(Clone)]
 struct BollState {
     period: usize,
     mult: f64,
-    window: Vec<f64>,
+    window: VecDeque<f64>,
 }
 
 impl IndicatorState for BollState {
@@ -89,9 +54,9 @@ impl IndicatorState for BollState {
         candle: &Candle,
         _prev: Option<&Candle>,
     ) -> IndicatorPoint {
-        self.window.push(candle.close);
+        self.window.push_back(candle.close);
         if self.window.len() > self.period {
-            self.window.remove(0);
+            self.window.pop_front();
         }
         let mut values = HashMap::new();
         if self.window.len() < self.period {
@@ -125,5 +90,9 @@ impl IndicatorState for BollState {
 
     fn warmup_len(&self) -> usize {
         self.period
+    }
+
+    fn duplicate(&self) -> Box<dyn IndicatorState> {
+        Box::new(self.clone())
     }
 }

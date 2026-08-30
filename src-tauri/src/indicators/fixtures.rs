@@ -41,10 +41,7 @@ pub fn approx_eq(a: Option<f64>, b: Option<f64>) -> bool {
     }
 }
 
-pub fn points_match(
-    actual: &crate::core::model::IndicatorPoint,
-    expected: &GoldenPoint,
-) -> bool {
+pub fn points_match(actual: &crate::core::model::IndicatorPoint, expected: &GoldenPoint) -> bool {
     if actual.timestamp != expected.timestamp {
         return false;
     }
@@ -86,11 +83,7 @@ mod generate {
     fn to_golden_point(pt: &IndicatorPoint) -> GoldenPoint {
         GoldenPoint {
             timestamp: pt.timestamp,
-            values: pt
-                .values
-                .iter()
-                .map(|(k, v)| (k.clone(), *v))
-                .collect(),
+            values: pt.values.iter().map(|(k, v)| (k.clone(), *v)).collect(),
         }
     }
 
@@ -111,7 +104,7 @@ mod generate {
         let mut cases = Vec::new();
         for (id, params) in specs {
             let indicator = get_indicator(id).unwrap();
-            let series = indicator.compute_all(&candles, params);
+            let series = indicator.compute_all(&candles, params).unwrap();
             let checkpoints = [1009_i64, 1024, 1034];
             let points = checkpoints
                 .iter()

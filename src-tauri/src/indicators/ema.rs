@@ -2,6 +2,7 @@ use crate::core::model::Candle;
 use crate::indicators::incremental::EmaState;
 use crate::indicators::traits::{Indicator, IndicatorState};
 use crate::indicators::types::{IndicatorError, IndicatorId, IndicatorPoint, IndicatorSeries};
+use crate::indicators::warm::compute_series;
 
 pub struct EmaIndicator;
 
@@ -20,28 +21,12 @@ impl Indicator for EmaIndicator {
         Ok(())
     }
 
-    fn compute_all(&self, candles: &[Candle], params: &[f64]) -> IndicatorSeries {
-        let mut states: Vec<EmaState> = params
-            .iter()
-            .enumerate()
-            .map(|(i, p)| EmaState::new(*p as usize, figure_key(i)))
-            .collect();
-        let points = candles
-            .iter()
-            .map(|c| {
-                let mut merged = IndicatorPoint::empty(c.timestamp);
-                for state in &mut states {
-                    let pt = state.on_value(c.timestamp, c.close);
-                    merged.values.extend(pt.values);
-                }
-                merged
-            })
-            .collect();
-        IndicatorSeries {
-            indicator_id: "EMA".into(),
-            calc_params: params.to_vec(),
-            points,
-        }
+    fn compute_all(
+        &self,
+        candles: &[Candle],
+        params: &[f64],
+    ) -> Result<IndicatorSeries, IndicatorError> {
+        compute_series(self, params, candles)
     }
 
     fn create_state(&self, params: &[f64]) -> Result<Box<dyn IndicatorState>, IndicatorError> {
@@ -56,6 +41,7 @@ impl Indicator for EmaIndicator {
     }
 }
 
+#[derive(Clone)]
 struct EmaStateWrapper {
     states: Vec<EmaState>,
 }
@@ -77,6 +63,10 @@ impl IndicatorState for EmaStateWrapper {
 
     fn warmup_len(&self) -> usize {
         self.states.iter().map(|s| s.period()).max().unwrap_or(0)
+    }
+
+    fn duplicate(&self) -> Box<dyn IndicatorState> {
+        Box::new(self.clone())
     }
 }
 

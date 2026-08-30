@@ -2,6 +2,7 @@ use crate::core::model::Candle;
 use crate::indicators::incremental::EmaState;
 use crate::indicators::traits::{Indicator, IndicatorState};
 use crate::indicators::types::{IndicatorError, IndicatorId, IndicatorPoint, IndicatorSeries};
+use crate::indicators::warm::compute_series;
 use std::collections::HashMap;
 
 pub struct MacdIndicator;
@@ -21,48 +22,12 @@ impl Indicator for MacdIndicator {
         Ok(())
     }
 
-    fn compute_all(&self, candles: &[Candle], params: &[f64]) -> IndicatorSeries {
-        let fast = params[0] as usize;
-        let slow = params[1] as usize;
-        let signal = params[2] as usize;
-        let mut ema_fast = EmaState::new(fast, "fast");
-        let mut ema_slow = EmaState::new(slow, "slow");
-        let mut ema_signal = EmaState::new(signal, "dea");
-        let points = candles
-            .iter()
-            .map(|c| {
-                let mut values = HashMap::new();
-                let _ = ema_fast.on_value(c.timestamp, c.close);
-                let _ = ema_slow.on_value(c.timestamp, c.close);
-                let fast_v = ema_fast.last_value();
-                let slow_v = ema_slow.last_value();
-                let dif = match (fast_v, slow_v) {
-                    (Some(f), Some(s)) => Some(f - s),
-                    _ => None,
-                };
-                values.insert("dif".into(), dif);
-                let dea = if let Some(d) = dif {
-                    ema_signal.on_value(c.timestamp, d).values.get("dea").copied().flatten()
-                } else {
-                    None
-                };
-                values.insert("dea".into(), dea);
-                let macd = match (dif, dea) {
-                    (Some(d), Some(e)) => Some((d - e) * 2.0),
-                    _ => None,
-                };
-                values.insert("macd".into(), macd);
-                IndicatorPoint {
-                    timestamp: c.timestamp,
-                    values,
-                }
-            })
-            .collect();
-        IndicatorSeries {
-            indicator_id: "MACD".into(),
-            calc_params: params.to_vec(),
-            points,
-        }
+    fn compute_all(
+        &self,
+        candles: &[Candle],
+        params: &[f64],
+    ) -> Result<IndicatorSeries, IndicatorError> {
+        compute_series(self, params, candles)
     }
 
     fn create_state(&self, params: &[f64]) -> Result<Box<dyn IndicatorState>, IndicatorError> {
@@ -75,6 +40,7 @@ impl Indicator for MacdIndicator {
     }
 }
 
+#[derive(Clone)]
 struct MacdState {
     ema_fast: EmaState,
     ema_slow: EmaState,
@@ -132,5 +98,9 @@ impl IndicatorState for MacdState {
 
     fn warmup_len(&self) -> usize {
         self.ema_slow.period() + self.ema_signal.period()
+    }
+
+    fn duplicate(&self) -> Box<dyn IndicatorState> {
+        Box::new(self.clone())
     }
 }

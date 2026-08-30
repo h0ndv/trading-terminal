@@ -62,54 +62,57 @@ struct CombinedTicker24hrWs {
     data: Ticker24hrWs,
 }
 
-fn parse_ticker_fields(
+struct TickerFieldStrings<'a> {
     symbol: String,
-    last_price: &str,
-    price_change: &str,
-    price_change_percent: &str,
-    high_price: &str,
-    low_price: &str,
-    volume: &str,
-    quote_volume: &str,
-) -> Result<TickerStats> {
+    last_price: &'a str,
+    price_change: &'a str,
+    price_change_percent: &'a str,
+    high_price: &'a str,
+    low_price: &'a str,
+    volume: &'a str,
+    quote_volume: &'a str,
+}
+
+fn parse_ticker_fields(fields: TickerFieldStrings<'_>) -> Result<TickerStats> {
     Ok(TickerStats {
-        symbol,
-        last_price: last_price.parse().context("parse last_price")?,
-        price_change: price_change.parse().context("parse price_change")?,
-        price_change_percent: price_change_percent
+        symbol: fields.symbol,
+        last_price: fields.last_price.parse().context("parse last_price")?,
+        price_change: fields.price_change.parse().context("parse price_change")?,
+        price_change_percent: fields
+            .price_change_percent
             .parse()
             .context("parse price_change_percent")?,
-        high_price: high_price.parse().context("parse high_price")?,
-        low_price: low_price.parse().context("parse low_price")?,
-        volume: volume.parse().context("parse volume")?,
-        quote_volume: quote_volume.parse().context("parse quote_volume")?,
+        high_price: fields.high_price.parse().context("parse high_price")?,
+        low_price: fields.low_price.parse().context("parse low_price")?,
+        volume: fields.volume.parse().context("parse volume")?,
+        quote_volume: fields.quote_volume.parse().context("parse quote_volume")?,
     })
 }
 
 fn parse_rest(row: &Ticker24hrRest) -> Result<TickerStats> {
-    parse_ticker_fields(
-        row.symbol.clone(),
-        &row.last_price,
-        &row.price_change,
-        &row.price_change_percent,
-        &row.high_price,
-        &row.low_price,
-        &row.volume,
-        &row.quote_volume,
-    )
+    parse_ticker_fields(TickerFieldStrings {
+        symbol: row.symbol.clone(),
+        last_price: &row.last_price,
+        price_change: &row.price_change,
+        price_change_percent: &row.price_change_percent,
+        high_price: &row.high_price,
+        low_price: &row.low_price,
+        volume: &row.volume,
+        quote_volume: &row.quote_volume,
+    })
 }
 
 fn parse_ws(row: &Ticker24hrWs) -> Result<TickerStats> {
-    parse_ticker_fields(
-        row.s.clone(),
-        &row.c,
-        &row.p,
-        &row.price_change_percent,
-        &row.h,
-        &row.l,
-        &row.v,
-        &row.q,
-    )
+    parse_ticker_fields(TickerFieldStrings {
+        symbol: row.s.clone(),
+        last_price: &row.c,
+        price_change: &row.p,
+        price_change_percent: &row.price_change_percent,
+        high_price: &row.h,
+        low_price: &row.l,
+        volume: &row.v,
+        quote_volume: &row.q,
+    })
 }
 
 pub async fn fetch_ticker_24h(symbol: &str) -> Result<TickerStats> {
@@ -137,11 +140,7 @@ enum StopReason {
     Closed,
 }
 
-pub async fn run_ticker_stream(
-    symbol: &str,
-    app: AppHandle,
-    mut cancel_rx: watch::Receiver<bool>,
-) {
+pub async fn run_ticker_stream(symbol: &str, app: AppHandle, mut cancel_rx: watch::Receiver<bool>) {
     let symbol = symbol.to_uppercase();
     let mut backoff_secs: u64 = 1;
     const MAX_BACKOFF: u64 = 30;
@@ -197,7 +196,10 @@ pub async fn run_combined_ticker_stream(
         match connect_and_read_combined(&url, &app, &mut cancel_rx).await {
             Ok(StopReason::Cancelled) => return,
             Ok(StopReason::Closed) => {
-                tracing::warn!(count, "binance combined ticker ws closed cleanly; reconnecting");
+                tracing::warn!(
+                    count,
+                    "binance combined ticker ws closed cleanly; reconnecting"
+                );
                 backoff_secs = 1;
             }
             Err(e) => {

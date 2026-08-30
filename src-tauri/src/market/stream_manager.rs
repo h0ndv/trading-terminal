@@ -110,10 +110,13 @@ impl StreamManager {
 
         tauri::async_runtime::spawn(async move {
             while let Some(candle) = rx.recv().await {
-                if let Ok(mut store) = candle_store.0.lock() {
-                    store.append_or_update(&symbol, &timeframe, candle.clone());
-                }
-                notify_candles_changed(&indicator_manager, &symbol, &timeframe, false);
+                let change = if let Ok(mut store) = candle_store.0.lock() {
+                    store.append_or_update(&symbol, &timeframe, candle.clone())
+                } else {
+                    tracing::error!("candle store lock poisoned");
+                    continue;
+                };
+                notify_candles_changed(&indicator_manager, &symbol, &timeframe, change);
                 let event = CandleUpdateEvent {
                     symbol: symbol.clone(),
                     timeframe: timeframe.clone(),

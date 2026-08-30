@@ -1,5 +1,4 @@
-use crate::core::model::Candle;
-use crate::core::model::IndicatorPoint;
+use crate::core::model::{Candle, IndicatorPoint, IndicatorSeries};
 use crate::indicators::traits::{Indicator, IndicatorState};
 use crate::indicators::types::IndicatorError;
 
@@ -17,6 +16,20 @@ pub fn compute_incremental(
             state.on_candle(i, c, prev)
         })
         .collect())
+}
+
+pub fn compute_series(
+    indicator: &dyn Indicator,
+    params: &[f64],
+    candles: &[Candle],
+) -> Result<IndicatorSeries, IndicatorError> {
+    indicator.validate_params(params)?;
+    let points = compute_incremental(indicator, params, candles)?;
+    Ok(IndicatorSeries {
+        indicator_id: indicator.id().0.clone(),
+        calc_params: params.to_vec(),
+        points,
+    })
 }
 
 pub fn warm_state(

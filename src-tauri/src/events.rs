@@ -1,6 +1,5 @@
 use crate::core::model::{
-    CandleUpdateEvent, IndicatorBootstrapEvent, IndicatorPatchEvent, IndicatorSeries,
-    TickerStats,
+    CandleUpdateEvent, IndicatorBootstrapEvent, IndicatorPatchEvent, IndicatorSeries, TickerStats,
 };
 use tauri::{AppHandle, Emitter};
 

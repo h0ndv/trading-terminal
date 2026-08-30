@@ -1,11 +1,12 @@
+use serde::Serialize;
+use std::collections::HashMap;
 use trading_terminal_lib::core::model::{Candle, IndicatorPoint, IndicatorSubscription};
 use trading_terminal_lib::indicators::fixtures::{golden_cases, points_match, sample_candles};
 use trading_terminal_lib::indicators::get_indicator;
 use trading_terminal_lib::indicators::warm::compute_incremental;
 use trading_terminal_lib::market::candle_store::CandleStoreState;
 use trading_terminal_lib::market::indicator_manager::IndicatorManager;
-use serde::Serialize;
-use std::collections::HashMap;
+use trading_terminal_lib::market::CandleChange;
 
 #[derive(Serialize)]
 struct GoldenFile {
@@ -36,7 +37,9 @@ fn validate_golden() {
     let candles = sample_candles();
     for case in golden_cases() {
         let indicator = get_indicator(&case.indicator_id).expect("indicator");
-        let series = indicator.compute_all(&candles, &case.calc_params);
+        let series = indicator
+            .compute_all(&candles, &case.calc_params)
+            .expect("batch");
         for expected in &case.points {
             let actual = series
                 .points
@@ -62,7 +65,9 @@ fn validate_incremental() {
     let candles = sample_candles();
     for case in golden_cases() {
         let indicator = get_indicator(&case.indicator_id).expect("indicator");
-        let batch = indicator.compute_all(&candles, &case.calc_params);
+        let batch = indicator
+            .compute_all(&candles, &case.calc_params)
+            .expect("batch");
         let incremental =
             compute_incremental(indicator, &case.calc_params, &candles).expect("incremental");
         assert_eq!(batch.points.len(), incremental.len());
@@ -121,7 +126,7 @@ fn validate_integration() {
         .lock()
         .unwrap()
         .replace("BTCUSDT", "1m", candles.clone());
-    mgr.on_candles_changed("BTCUSDT", "1m", false);
+    mgr.on_candles_changed("BTCUSDT", "1m", CandleChange::Replace);
 
     let series = mgr.test_cached_series("chart-1", "ma-1").expect("series");
     assert_eq!(series.points.len(), candles.len());
@@ -131,7 +136,7 @@ fn validate_integration() {
         .lock()
         .unwrap()
         .append_or_update("BTCUSDT", "1m", candle(2000, 50.0));
-    mgr.on_candles_changed("BTCUSDT", "1m", false);
+    mgr.on_candles_changed("BTCUSDT", "1m", CandleChange::PatchLast);
     let series = mgr.test_cached_series("chart-1", "ma-1").expect("series");
     assert_eq!(series.points.len(), candles.len() + 1);
 }
@@ -155,7 +160,7 @@ fn main() {
     let mut cases = Vec::new();
     for (id, params) in specs {
         let indicator = get_indicator(id).expect("indicator");
-        let series = indicator.compute_all(&candles, params);
+        let series = indicator.compute_all(&candles, params).expect("series");
         let checkpoints = [1009_i64, 1024, 1034];
         let points = checkpoints
             .iter()

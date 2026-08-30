@@ -1,6 +1,7 @@
 use crate::core::model::Candle;
 use crate::indicators::traits::{Indicator, IndicatorState};
 use crate::indicators::types::{IndicatorError, IndicatorId, IndicatorPoint, IndicatorSeries};
+use crate::indicators::warm::compute_series;
 use std::collections::HashMap;
 
 pub struct KdjIndicator;
@@ -20,21 +21,12 @@ impl Indicator for KdjIndicator {
         Ok(())
     }
 
-    fn compute_all(&self, candles: &[Candle], params: &[f64]) -> IndicatorSeries {
-        let rsv_period = params[0] as usize;
-        let k_smooth = params[1] as usize;
-        let d_smooth = params[2] as usize;
-        let mut state = KdjState::new(rsv_period, k_smooth, d_smooth);
-        let points = candles
-            .iter()
-            .enumerate()
-            .map(|(i, c)| state.on_candle(i, c, None))
-            .collect();
-        IndicatorSeries {
-            indicator_id: "KDJ".into(),
-            calc_params: params.to_vec(),
-            points,
-        }
+    fn compute_all(
+        &self,
+        candles: &[Candle],
+        params: &[f64],
+    ) -> Result<IndicatorSeries, IndicatorError> {
+        compute_series(self, params, candles)
     }
 
     fn create_state(&self, params: &[f64]) -> Result<Box<dyn IndicatorState>, IndicatorError> {
@@ -47,6 +39,7 @@ impl Indicator for KdjIndicator {
     }
 }
 
+#[derive(Clone)]
 pub struct KdjState {
     rsv_period: usize,
     k_smooth: usize,
@@ -72,24 +65,21 @@ impl KdjState {
         }
     }
 
+    fn push_window(&mut self, high: f64, low: f64) {
+        self.highs.push(high);
+        self.lows.push(low);
+        if self.highs.len() > self.rsv_period {
+            self.highs.remove(0);
+            self.lows.remove(0);
+        }
+    }
+
     fn rsv(&self, close: f64) -> Option<f64> {
         if self.highs.len() < self.rsv_period {
             return None;
         }
-        let high = self
-            .highs
-            .iter()
-            .rev()
-            .take(self.rsv_period)
-            .copied()
-            .fold(f64::NEG_INFINITY, f64::max);
-        let low = self
-            .lows
-            .iter()
-            .rev()
-            .take(self.rsv_period)
-            .copied()
-            .fold(f64::INFINITY, f64::min);
+        let high = self.highs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let low = self.lows.iter().copied().fold(f64::INFINITY, f64::min);
         if (high - low).abs() < f64::EPSILON {
             return Some(50.0);
         }
@@ -104,8 +94,7 @@ impl IndicatorState for KdjState {
         candle: &Candle,
         _prev: Option<&Candle>,
     ) -> IndicatorPoint {
-        self.highs.push(candle.high);
-        self.lows.push(candle.low);
+        self.push_window(candle.high, candle.low);
         let mut values = HashMap::new();
         let rsv = self.rsv(candle.close);
         if let Some(rsv) = rsv {
@@ -136,5 +125,9 @@ impl IndicatorState for KdjState {
 
     fn warmup_len(&self) -> usize {
         self.rsv_period
+    }
+
+    fn duplicate(&self) -> Box<dyn IndicatorState> {
+        Box::new(self.clone())
     }
 }
