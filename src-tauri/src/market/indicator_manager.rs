@@ -66,6 +66,12 @@ struct PatchStep {
     replacement_state: Option<Box<dyn IndicatorState>>,
 }
 
+enum SeriesCandleSync {
+    SameLength,
+    AppendedOne,
+    OutOfSync,
+}
+
 impl IndicatorManager {
     pub fn new(app: AppHandle, candle_store: CandleStoreState) -> Self {
         Self {
@@ -271,16 +277,24 @@ impl IndicatorManager {
         self.warm_state(key, candles, candles.len() - 1).ok()
     }
 
-    fn series_timestamps_match(cache: &CachedCompute, candles: &[Candle]) -> bool {
-        if cache.series.points.len() != candles.len() {
-            return false;
+    fn series_candle_sync(cache: &CachedCompute, candles: &[Candle]) -> SeriesCandleSync {
+        let series = &cache.series.points;
+        let n = series.len();
+        if n > candles.len() {
+            return SeriesCandleSync::OutOfSync;
         }
-        cache
-            .series
-            .points
+        if !series
             .iter()
             .zip(candles.iter())
             .all(|(p, c)| p.timestamp == c.timestamp)
+        {
+            return SeriesCandleSync::OutOfSync;
+        }
+        match candles.len() - n {
+            0 => SeriesCandleSync::SameLength,
+            1 => SeriesCandleSync::AppendedOne,
+            _ => SeriesCandleSync::OutOfSync,
+        }
     }
 
     fn recompute_full(&mut self, key: &ComputeKey) {
@@ -443,14 +457,13 @@ impl IndicatorManager {
             return;
         }
 
-        let Some(cache) = self.computes.get(key) else {
-            self.recompute_full(key);
-            return;
+        let sync = match self.computes.get(key) {
+            Some(cache) => Self::series_candle_sync(cache, &candles),
+            None => {
+                self.recompute_full(key);
+                return;
+            }
         };
-        if !Self::series_timestamps_match(cache, &candles) {
-            self.recompute_full(key);
-            return;
-        }
 
         let last_idx = candles.len() - 1;
         let last_ts = candles[last_idx].timestamp;
@@ -460,18 +473,25 @@ impl IndicatorManager {
             return;
         }
 
-        if series_last_ts == Some(last_ts) {
-            let Some(step) = self.patch_same_bar(key, &candles, last_idx) else {
-                return;
-            };
-            self.commit_patch(key, &candles, last_ts, step);
-            return;
+        match sync {
+            SeriesCandleSync::OutOfSync => self.recompute_full(key),
+            SeriesCandleSync::SameLength => {
+                if series_last_ts != Some(last_ts) {
+                    self.recompute_full(key);
+                    return;
+                }
+                let Some(step) = self.patch_same_bar(key, &candles, last_idx) else {
+                    return;
+                };
+                self.commit_patch(key, &candles, last_ts, step);
+            }
+            SeriesCandleSync::AppendedOne => {
+                let Some(step) = self.patch_new_bar(key, &candles, last_idx) else {
+                    return;
+                };
+                self.commit_patch(key, &candles, last_ts, step);
+            }
         }
-
-        let Some(step) = self.patch_new_bar(key, &candles, last_idx) else {
-            return;
-        };
-        self.commit_patch(key, &candles, last_ts, step);
     }
 
     fn emit_bootstrap_for_binding(&self, binding: &Binding, series: &IndicatorSeries) {
@@ -568,6 +588,9 @@ mod tests {
     use super::*;
     use crate::core::model::Candle;
     use crate::indicators::fixtures::sample_candles;
+    use crate::indicators::ma::MaIndicator;
+    use crate::indicators::traits::Indicator;
+    use std::collections::HashSet;
 
     fn candle(ts: i64, close: f64) -> Candle {
         Candle {
@@ -580,6 +603,26 @@ mod tests {
         }
     }
 
+    fn cached_with_timestamps(timestamps: &[i64]) -> CachedCompute {
+        let ind = MaIndicator;
+        CachedCompute {
+            series: IndicatorSeries {
+                indicator_id: "MA".into(),
+                calc_params: vec![5.0],
+                points: timestamps
+                    .iter()
+                    .map(|ts| IndicatorPoint {
+                        timestamp: *ts,
+                        values: HashMap::new(),
+                    })
+                    .collect(),
+            },
+            state: ind.create_state(&[5.0]).unwrap(),
+            state_before_last: None,
+            subscribers: HashSet::new(),
+        }
+    }
+
     fn ma_subscription(chart_id: &str, instance_id: &str) -> IndicatorSubscription {
         IndicatorSubscription {
             chart_id: chart_id.to_string(),
@@ -589,6 +632,41 @@ mod tests {
             indicator_id: "MA".to_string(),
             calc_params: vec![5.0],
         }
+    }
+
+    #[test]
+    fn series_candle_sync_same_length() {
+        let cache = cached_with_timestamps(&[1, 2, 3]);
+        let candles = vec![candle(1, 1.0), candle(2, 2.0), candle(3, 3.0)];
+        assert!(matches!(
+            IndicatorManager::series_candle_sync(&cache, &candles),
+            SeriesCandleSync::SameLength
+        ));
+    }
+
+    #[test]
+    fn series_candle_sync_appended_one() {
+        let cache = cached_with_timestamps(&[1, 2, 3]);
+        let candles = vec![
+            candle(1, 1.0),
+            candle(2, 2.0),
+            candle(3, 3.0),
+            candle(4, 4.0),
+        ];
+        assert!(matches!(
+            IndicatorManager::series_candle_sync(&cache, &candles),
+            SeriesCandleSync::AppendedOne
+        ));
+    }
+
+    #[test]
+    fn series_candle_sync_out_of_sync_on_prepend() {
+        let cache = cached_with_timestamps(&[10, 11]);
+        let candles = vec![candle(8, 8.0), candle(9, 9.0), candle(10, 10.0), candle(11, 11.0)];
+        assert!(matches!(
+            IndicatorManager::series_candle_sync(&cache, &candles),
+            SeriesCandleSync::OutOfSync
+        ));
     }
 
     #[test]
@@ -707,7 +785,7 @@ mod tests {
     fn integration_live_patch_appends_new_bar() {
         let store = CandleStoreState::new();
         let mut mgr = IndicatorManager::new_for_test(store.clone());
-        let candles = vec![candle(1, 10.0), candle(2, 20.0), candle(3, 30.0)];
+        let candles: Vec<_> = (1..=5).map(|i| candle(i, i as f64 * 10.0)).collect();
         store.0.lock().unwrap().replace("BTCUSDT", "1m", candles);
         mgr.sync(vec![ma_subscription("chart-1", "ma-1")]);
         mgr.on_candles_changed("BTCUSDT", "1m", CandleChange::Replace);
@@ -716,13 +794,21 @@ mod tests {
             .0
             .lock()
             .unwrap()
-            .append_or_update("BTCUSDT", "1m", candle(4, 40.0));
+            .append_or_update("BTCUSDT", "1m", candle(6, 60.0));
         mgr.on_candles_changed("BTCUSDT", "1m", CandleChange::PatchLast);
 
         let series = mgr.test_cached_series("chart-1", "ma-1").unwrap();
-        assert_eq!(series.points.len(), 4);
-        assert_eq!(series.points.last().unwrap().timestamp, 4);
-        assert!((series.points.last().unwrap().values["ma1"].unwrap() - 30.0).abs() < 1e-6);
+        assert_eq!(series.points.len(), 6);
+        assert_eq!(series.points.last().unwrap().timestamp, 6);
+        let ma1 = series
+            .points
+            .last()
+            .unwrap()
+            .values
+            .get("ma1")
+            .copied()
+            .flatten();
+        assert!((ma1.unwrap() - 40.0).abs() < 1e-6);
     }
 
     #[test]
