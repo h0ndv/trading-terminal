@@ -4,9 +4,7 @@ import type { OrderBookSnapshot } from '../lib/types';
 
 export function useOrderBook(symbol: string): OrderBookSnapshot | null {
   const key = symbol.toUpperCase();
-  const [book, setBook] = useState<OrderBookSnapshot | null>(
-    () => getCachedOrderBook(key) ?? null,
-  );
+  const [book, setBook] = useState<OrderBookSnapshot | null>(() => getCachedOrderBook(key) ?? null);
 
   useEffect(() => {
     setBook(getCachedOrderBook(key) ?? null);

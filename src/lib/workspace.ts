@@ -130,19 +130,14 @@ export function resolveActiveChartId(
   return charts[0]?.id ?? '';
 }
 
-export function collectTickerSymbols(
-  charts: ChartPanelConfig[],
-  watchlist: string[],
-): string[] {
+export function collectTickerSymbols(charts: ChartPanelConfig[], watchlist: string[]): string[] {
   const set = new Set<string>();
   for (const c of charts) set.add(c.symbol.toUpperCase());
   for (const w of watchlist) set.add(w.toUpperCase());
   return [...set].sort();
 }
 
-export function collectIndicatorSubscriptions(
-  charts: ChartPanelConfig[],
-): IndicatorSubscription[] {
+export function collectIndicatorSubscriptions(charts: ChartPanelConfig[]): IndicatorSubscription[] {
   const subs: IndicatorSubscription[] = [];
   for (const chart of charts) {
     for (const ind of chart.indicators) {

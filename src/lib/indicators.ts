@@ -137,7 +137,13 @@ export const INDICATOR_META: Record<BuiltinIndicatorId, IndicatorMeta> = {
 
 export const DEFAULT_INDICATORS: IndicatorConfig[] = [
   { id: 'EMA', instanceId: 'ema-default', enabled: true, visible: true, calcParams: [21, 55, 200] },
-  { id: 'MA', instanceId: 'ma-default', enabled: false, visible: true, calcParams: [5, 10, 30, 60] },
+  {
+    id: 'MA',
+    instanceId: 'ma-default',
+    enabled: false,
+    visible: true,
+    calcParams: [5, 10, 30, 60],
+  },
   { id: 'BOLL', instanceId: 'boll-default', enabled: false, visible: true, calcParams: [20, 2] },
   { id: 'VOL', instanceId: 'vol-default', enabled: true, visible: true, calcParams: [5, 10, 20] },
   { id: 'MACD', instanceId: 'macd-default', enabled: true, visible: true, calcParams: [12, 26, 9] },

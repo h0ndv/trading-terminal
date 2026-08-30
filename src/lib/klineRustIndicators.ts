@@ -1,8 +1,4 @@
-import {
-  registerIndicator,
-  type IndicatorFigure,
-  type KLineData,
-} from 'klinecharts';
+import { registerIndicator, type IndicatorFigure, type KLineData } from 'klinecharts';
 import type { BuiltinIndicatorId } from './indicators';
 
 type ValueRow = Record<string, number | null>;
@@ -135,7 +131,8 @@ export function registerRustIndicators(): void {
     registerIndicator({
       name: id,
       shortName: id,
-      series: id === 'VOL' ? 'volume' : id === 'MA' || id === 'EMA' || id === 'BOLL' ? 'price' : 'normal',
+      series:
+        id === 'VOL' ? 'volume' : id === 'MA' || id === 'EMA' || id === 'BOLL' ? 'price' : 'normal',
       calcParams: [],
       figures: def.figures([]),
       regenerateFigures: def.regenerateFigures

@@ -199,8 +199,7 @@ export async function loadSettings(): Promise<AppSettings> {
     const marketDockTab = await store.get<MarketDockTab>('marketDockTab');
 
     return normalizeSettings({
-      version:
-        version === 8 || version === 7 || version === 6 ? 8 : undefined,
+      version: version === 8 || version === 7 || version === 6 ? 8 : undefined,
       charts: charts ?? undefined,
       activeChartId: activeChartId ?? undefined,
       workspaceLayout: workspaceLayout ?? undefined,

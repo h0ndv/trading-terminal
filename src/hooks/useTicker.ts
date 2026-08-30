@@ -4,9 +4,7 @@ import type { TickerStats } from '../lib/types';
 
 export function useTicker(symbol: string): TickerStats | null {
   const key = symbol.toUpperCase();
-  const [stats, setStats] = useState<TickerStats | null>(
-    () => getCachedTicker(key) ?? null,
-  );
+  const [stats, setStats] = useState<TickerStats | null>(() => getCachedTicker(key) ?? null);
 
   useEffect(() => {
     setStats(getCachedTicker(key) ?? null);

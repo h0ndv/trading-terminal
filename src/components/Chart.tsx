@@ -18,10 +18,7 @@ import {
   type IndicatorConfig,
 } from '../lib/indicators';
 import { rustIndicatorInstanceKey } from '../lib/klineRustIndicators';
-import {
-  subscribeIndicatorBootstrap,
-  subscribeIndicatorPatch,
-} from '../lib/marketStream';
+import { subscribeIndicatorBootstrap, subscribeIndicatorPatch } from '../lib/marketStream';
 import { INDICATOR_FEATURE, indicatorTooltipFeatures } from '../lib/tooltipFeatures';
 import { toKLineStyles, type ThemeTokens } from '../lib/theme';
 import type { Candle } from '../lib/types';

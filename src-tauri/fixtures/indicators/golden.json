@@ -2,10 +2,7 @@
   "cases": [
     {
       "indicator_id": "MA",
-      "calc_params": [
-        5.0,
-        10.0
-      ],
+      "calc_params": [5.0, 10.0],
       "points": [
         {
           "timestamp": 1009,
@@ -32,10 +29,7 @@
     },
     {
       "indicator_id": "EMA",
-      "calc_params": [
-        9.0,
-        21.0
-      ],
+      "calc_params": [9.0, 21.0],
       "points": [
         {
           "timestamp": 1009,
@@ -62,10 +56,7 @@
     },
     {
       "indicator_id": "BOLL",
-      "calc_params": [
-        20.0,
-        2.0
-      ],
+      "calc_params": [20.0, 2.0],
       "points": [
         {
           "timestamp": 1009,
@@ -95,10 +86,7 @@
     },
     {
       "indicator_id": "VOL",
-      "calc_params": [
-        5.0,
-        10.0
-      ],
+      "calc_params": [5.0, 10.0],
       "points": [
         {
           "timestamp": 1009,
@@ -128,11 +116,7 @@
     },
     {
       "indicator_id": "MACD",
-      "calc_params": [
-        12.0,
-        26.0,
-        9.0
-      ],
+      "calc_params": [12.0, 26.0, 9.0],
       "points": [
         {
           "timestamp": 1009,
@@ -162,9 +146,7 @@
     },
     {
       "indicator_id": "RSI",
-      "calc_params": [
-        14.0
-      ],
+      "calc_params": [14.0],
       "points": [
         {
           "timestamp": 1009,
@@ -188,9 +170,7 @@
     },
     {
       "indicator_id": "CCI",
-      "calc_params": [
-        20.0
-      ],
+      "calc_params": [20.0],
       "points": [
         {
           "timestamp": 1009,
@@ -214,11 +194,7 @@
     },
     {
       "indicator_id": "KDJ",
-      "calc_params": [
-        9.0,
-        3.0,
-        3.0
-      ],
+      "calc_params": [9.0, 3.0, 3.0],
       "points": [
         {
           "timestamp": 1009,

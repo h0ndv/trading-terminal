@@ -12,7 +12,14 @@ type WatchlistRowProps = {
   onRemove: (ticker: string) => void;
 };
 
-function WatchlistRow({ ticker, info, active, onSelect, onSelectTicker, onRemove }: WatchlistRowProps) {
+function WatchlistRow({
+  ticker,
+  info,
+  active,
+  onSelect,
+  onSelectTicker,
+  onRemove,
+}: WatchlistRowProps) {
   const stats = useTicker(ticker);
   const pricePrecision = info?.price_precision ?? 2;
 

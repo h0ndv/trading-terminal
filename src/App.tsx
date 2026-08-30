@@ -145,13 +145,9 @@ function App() {
 
   const [themeMode, setThemeMode] = useState<ThemeMode>(DEFAULT_SETTINGS.themeMode);
 
-  const [marketDockVisible, setMarketDockVisible] = useState(
-    DEFAULT_SETTINGS.marketDockVisible,
-  );
+  const [marketDockVisible, setMarketDockVisible] = useState(DEFAULT_SETTINGS.marketDockVisible);
 
-  const [marketDockTab, setMarketDockTab] = useState<MarketDockTab>(
-    DEFAULT_SETTINGS.marketDockTab,
-  );
+  const [marketDockTab, setMarketDockTab] = useState<MarketDockTab>(DEFAULT_SETTINGS.marketDockTab);
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -730,18 +726,12 @@ function App() {
             ))}
             <button
               type="button"
-              className={
-                syncTimeframe ? 'interval-sync-btn active' : 'interval-sync-btn'
-              }
+              className={syncTimeframe ? 'interval-sync-btn active' : 'interval-sync-btn'}
               title={
-                syncTimeframe
-                  ? 'Timeframe synced across charts'
-                  : 'Sync timeframe across charts'
+                syncTimeframe ? 'Timeframe synced across charts' : 'Sync timeframe across charts'
               }
               aria-label={
-                syncTimeframe
-                  ? 'Timeframe synced across charts'
-                  : 'Sync timeframe across charts'
+                syncTimeframe ? 'Timeframe synced across charts' : 'Sync timeframe across charts'
               }
               aria-pressed={syncTimeframe}
               onClick={onToggleSyncTimeframe}

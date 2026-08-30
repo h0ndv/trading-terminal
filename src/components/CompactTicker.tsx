@@ -7,16 +7,10 @@ type Props = {
   variant?: 'panel' | 'watchlist';
 };
 
-export default function CompactTicker({
-  stats,
-  pricePrecision,
-  variant = 'panel',
-}: Props) {
+export default function CompactTicker({ stats, pricePrecision, variant = 'panel' }: Props) {
   if (!stats) {
     return (
-      <span className={`compact-ticker compact-ticker--${variant} compact-ticker--empty`}>
-        —
-      </span>
+      <span className={`compact-ticker compact-ticker--${variant} compact-ticker--empty`}>—</span>
     );
   }
 

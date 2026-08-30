@@ -12,10 +12,7 @@ import type {
   TickerStats,
   TradeTick,
 } from './types';
-import {
-  setRustIndicatorBootstrap,
-  setRustIndicatorPatch,
-} from './klineRustIndicators';
+import { setRustIndicatorBootstrap, setRustIndicatorPatch } from './klineRustIndicators';
 
 export function getHistorical(
   symbol: string,
@@ -99,9 +96,7 @@ export function syncTickerSymbols(symbols: string[]): Promise<void> {
   return invoke('sync_ticker_symbols', { symbols });
 }
 
-export function syncIndicatorSubscriptions(
-  subscriptions: IndicatorSubscription[],
-): Promise<void> {
+export function syncIndicatorSubscriptions(subscriptions: IndicatorSubscription[]): Promise<void> {
   return invoke('sync_indicator_subscriptions', { subscriptions });
 }
 
@@ -126,14 +121,11 @@ async function ensureIndicatorListeners(): Promise<void> {
     );
   }
   if (!indicatorUnlistenPatch) {
-    indicatorUnlistenPatch = await listen<IndicatorPatchEvent>(
-      'indicator-patch',
-      (event) => {
-        const ev = event.payload;
-        setRustIndicatorPatch(ev.chart_id, ev.instance_id, ev.point);
-        indicatorPatchListeners.get(ev.chart_id)?.forEach((cb) => cb(ev));
-      },
-    );
+    indicatorUnlistenPatch = await listen<IndicatorPatchEvent>('indicator-patch', (event) => {
+      const ev = event.payload;
+      setRustIndicatorPatch(ev.chart_id, ev.instance_id, ev.point);
+      indicatorPatchListeners.get(ev.chart_id)?.forEach((cb) => cb(ev));
+    });
   }
 }
 
@@ -261,7 +253,7 @@ let bookUnlisten: UnlistenFn | null = null;
 let tradeUnlisten: UnlistenFn | null = null;
 let marketPanelSubscriberCount = 0;
 
-let pendingBooks = new Map<string, OrderBookSnapshot>();
+const pendingBooks = new Map<string, OrderBookSnapshot>();
 let bookRaf = 0;
 
 function flushPendingBooks() {

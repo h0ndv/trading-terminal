@@ -17,28 +17,14 @@ pub fn combined_market_panel_url(symbol: &str) -> String {
 }
 
 pub fn combined_market_panel_stream_url(symbols: &[String]) -> String {
-    combined_market_panel_stream_url_for_market(symbols, false)
-}
-
-pub fn combined_futures_market_panel_stream_url(symbols: &[String]) -> String {
-    combined_market_panel_stream_url_for_market(symbols, true)
-}
-
-fn combined_market_panel_stream_url_for_market(symbols: &[String], futures: bool) -> String {
     let mut streams: Vec<String> = Vec::with_capacity(symbols.len() * 2);
     for symbol in symbols {
         let sym = symbol.to_lowercase();
         streams.push(format!("{sym}@depth{DEPTH_LEVELS}@100ms"));
-        if !futures {
-            streams.push(format!("{sym}@trade"));
-        }
+        streams.push(format!("{sym}@trade"));
     }
     let joined = streams.join("/");
-    if futures {
-        format!("wss://fstream.binance.com/stream?streams={joined}")
-    } else {
-        format!("wss://stream.binance.com:9443/stream?streams={joined}")
-    }
+    format!("wss://stream.binance.com:9443/stream?streams={joined}")
 }
 
 fn symbol_from_stream(stream: &str) -> Option<String> {
@@ -104,23 +90,6 @@ pub async fn run_combined_market_panel_stream(
     app: AppHandle,
     cancel_rx: watch::Receiver<bool>,
 ) {
-    run_combined_market_panel_stream_for_market(symbols, app, cancel_rx, false).await;
-}
-
-pub async fn run_combined_futures_market_panel_stream(
-    symbols: Vec<String>,
-    app: AppHandle,
-    cancel_rx: watch::Receiver<bool>,
-) {
-    run_combined_market_panel_stream_for_market(symbols, app, cancel_rx, true).await;
-}
-
-async fn run_combined_market_panel_stream_for_market(
-    symbols: Vec<String>,
-    app: AppHandle,
-    cancel_rx: watch::Receiver<bool>,
-    futures: bool,
-) {
     let mut cancel_rx = cancel_rx;
     let count = symbols.len();
     let mut backoff_secs: u64 = 1;
@@ -132,11 +101,7 @@ async fn run_combined_market_panel_stream_for_market(
             return;
         }
 
-        let url = if futures {
-            combined_futures_market_panel_stream_url(&symbols)
-        } else {
-            combined_market_panel_stream_url(&symbols)
-        };
+        let url = combined_market_panel_stream_url(&symbols);
         tracing::info!(count, %url, "starting binance combined market panel ws");
 
         match connect_and_read_combined(&url, &app, &mut cancel_rx).await {
@@ -274,7 +239,9 @@ fn dispatch_message_combined(text: &str, app: &AppHandle) {
                 };
                 match snapshot_from_depth_value(&symbol, &ev.data) {
                     Ok(book) => emit_book_update(app, &book),
-                    Err(e) => tracing::debug!(error = %e, %symbol, "failed to parse combined depth"),
+                    Err(e) => {
+                        tracing::debug!(error = %e, %symbol, "failed to parse combined depth")
+                    }
                 }
             }
             Err(e) => tracing::debug!(error = %e, "failed to deserialize combined depth event"),

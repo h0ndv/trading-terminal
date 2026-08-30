@@ -37,11 +37,7 @@ function LevelRow({
   const pct = max > 0 ? (level.qty / max) * 100 : 0;
   return (
     <div className={`book-row book-row-${side}`}>
-      <div
-        className="book-row-bar"
-        style={{ width: `${pct}%` }}
-        aria-hidden
-      />
+      <div className="book-row-bar" style={{ width: `${pct}%` }} aria-hidden />
       <span className="book-row-price">{formatNum(level.price, pricePrecision)}</span>
       <span className="book-row-qty">{formatNum(level.qty, volumePrecision)}</span>
     </div>
@@ -57,8 +53,7 @@ export default function OrderBook({ book, pricePrecision, volumePrecision }: Pro
   const bids = book.bids;
   const bestAsk = book.asks[0]?.price;
   const bestBid = book.bids[0]?.price;
-  const spread =
-    bestAsk != null && bestBid != null ? bestAsk - bestBid : null;
+  const spread = bestAsk != null && bestBid != null ? bestAsk - bestBid : null;
   const maxQtyVal = Math.max(maxQty(asks), maxQty(bids));
 
   return (
