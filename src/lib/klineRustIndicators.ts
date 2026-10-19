@@ -9,6 +9,15 @@ export function rustIndicatorInstanceKey(chartId: string, instanceId: string): s
   return `${chartId}:${instanceId}`;
 }
 
+export function clearRustIndicatorCache(chartId: string): void {
+  const prefix = `${chartId}:`;
+  for (const key of [...cache.keys()]) {
+    if (key.startsWith(prefix)) {
+      cache.delete(key);
+    }
+  }
+}
+
 export function setRustIndicatorBootstrap(
   chartId: string,
   instanceId: string,

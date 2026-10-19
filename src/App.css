@@ -1031,6 +1031,94 @@ body,
   min-width: 0;
 }
 
+.chart-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.chart-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--background) 88%, black);
+  opacity: 0;
+  transition: opacity 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chart-root {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  transition:
+    opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center center;
+}
+
+.chart-stage--loading::after {
+  opacity: 0.82;
+}
+
+.chart-stage--loading .chart-root {
+  opacity: 0;
+  transform: scale(0.992);
+}
+
+.chart-stage--candles::after {
+  opacity: 0.42;
+}
+
+.chart-stage--candles .chart-root {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.chart-stage--ready::after {
+  opacity: 0;
+}
+
+.chart-stage--ready .chart-root {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-stage::after {
+    transition-duration: 120ms;
+  }
+
+  .chart-root {
+    transition-duration: 120ms;
+  }
+
+  .chart-stage--loading::after {
+    opacity: 0.55;
+  }
+
+  .chart-stage--loading .chart-root {
+    opacity: 0.35;
+    transform: none;
+  }
+
+  .chart-stage--candles::after,
+  .chart-stage--ready::after {
+    opacity: 0;
+  }
+
+  .chart-stage--candles .chart-root,
+  .chart-stage--ready .chart-root {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .chart-resize-handle {
   flex-shrink: 0;
   width: 4px;

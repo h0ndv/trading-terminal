@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { init, dispose, type Chart, type KLineData, type Overlay, type Period } from 'klinecharts';
 import type { CandleHandlers } from '../hooks/useChartStream';
 import {
@@ -17,7 +18,7 @@ import {
   type BuiltinIndicatorId,
   type IndicatorConfig,
 } from '../lib/indicators';
-import { rustIndicatorInstanceKey } from '../lib/klineRustIndicators';
+import { clearRustIndicatorCache, rustIndicatorInstanceKey } from '../lib/klineRustIndicators';
 import { subscribeIndicatorBootstrap, subscribeIndicatorPatch } from '../lib/marketStream';
 import { INDICATOR_FEATURE, indicatorTooltipFeatures } from '../lib/tooltipFeatures';
 import { toKLineStyles, type ThemeTokens } from '../lib/theme';
@@ -83,6 +84,11 @@ function toPeriod(timeframe: string): Period {
 }
 
 const KLINES_PAGE_LIMIT = 1000;
+const STREAM_MIN_LOADING_MS = 320;
+const STREAM_CANDLES_MS = 420;
+const STREAM_READY_MS = 520;
+
+type StreamVisual = 'loading' | 'candles' | 'ready';
 
 function candleToBar(c: Candle): KLineData {
   return {
@@ -251,6 +257,17 @@ function syncIndicators(
   }
 }
 
+function resubscribeLiveCandle(
+  stream: CandleHandlers,
+  pushBar: (data: KLineData) => void,
+  historyReady: { current: boolean },
+): () => void {
+  return stream.onCandle((candle) => {
+    if (!historyReady.current) return;
+    pushBar(candleToBar(candle));
+  });
+}
+
 export default function ChartView({
   chartId,
   symbol,
@@ -283,6 +300,10 @@ export default function ChartView({
   const drawingsRestoredRef = useRef(false);
   const streamRef = useRef(stream);
   streamRef.current = stream;
+  const symbolRef = useRef(symbol);
+  symbolRef.current = symbol;
+  const timeframeRef = useRef(timeframe);
+  timeframeRef.current = timeframe;
   const drawingsRef = useRef(drawings);
   drawingsRef.current = drawings;
   const onDrawingsChangeRef = useRef(onDrawingsChange);
@@ -303,6 +324,79 @@ export default function ChartView({
   onDrawingSelectRef.current = onDrawingSelect;
   const themeTokensRef = useRef(themeTokens);
   themeTokensRef.current = themeTokens;
+  const [streamVisual, setStreamVisual] = useState<StreamVisual>('loading');
+  const loadTokenRef = useRef(0);
+  const loadStartedAtRef = useRef(0);
+  const awaitingIndicatorsRef = useRef(false);
+  const streamSwitchReadyRef = useRef(false);
+  const setStreamVisualRef = useRef(setStreamVisual);
+  setStreamVisualRef.current = setStreamVisual;
+
+  function scheduleStreamVisual(phase: StreamVisual, token: number, extraDelay = 0) {
+    const elapsed = performance.now() - loadStartedAtRef.current;
+    const floor =
+      phase === 'loading'
+        ? 0
+        : phase === 'candles'
+          ? Math.max(STREAM_CANDLES_MS, STREAM_MIN_LOADING_MS)
+          : STREAM_READY_MS;
+    const remaining = Math.max(0, floor - elapsed) + extraDelay;
+    window.setTimeout(() => {
+      if (token !== loadTokenRef.current) return;
+      setStreamVisualRef.current(phase);
+    }, remaining);
+  }
+
+  function beginStreamTransition(hasEnabledIndicators: boolean) {
+    loadStartedAtRef.current = performance.now();
+    loadTokenRef.current += 1;
+    awaitingIndicatorsRef.current = hasEnabledIndicators;
+    flushSync(() => {
+      setStreamVisual('loading');
+    });
+  }
+
+  function reloadChartStream(
+    chart: Chart,
+    sym: string,
+    tf: string,
+    pricePrec: number,
+    volPrec: number,
+    hasEnabledIndicators: boolean,
+  ) {
+    beginStreamTransition(hasEnabledIndicators);
+    clearRustIndicatorCache(chartId);
+    historyReadyRef.current = false;
+    offCandleRef.current?.();
+    offCandleRef.current = null;
+
+    requestAnimationFrame(() => {
+      if (chartRef.current !== chart) return;
+      chart.setSymbol({
+        ticker: sym,
+        pricePrecision: pricePrec,
+        volumePrecision: volPrec,
+      });
+      chart.setPeriod(toPeriod(tf));
+      if (pushBarRef.current) {
+        offCandleRef.current = resubscribeLiveCandle(
+          streamRef.current,
+          pushBarRef.current,
+          historyReadyRef,
+        );
+      }
+    });
+  }
+
+  function finishStreamTransition(token: number) {
+    scheduleStreamVisual(awaitingIndicatorsRef.current ? 'candles' : 'ready', token);
+  }
+
+  function finishIndicatorTransition() {
+    if (!awaitingIndicatorsRef.current) return;
+    awaitingIndicatorsRef.current = false;
+    scheduleStreamVisual('ready', loadTokenRef.current, 90);
+  }
 
   function emitDrawings(chart: Chart) {
     onDrawingsChangeRef.current(collectUserDrawings(chart));
@@ -312,7 +406,6 @@ export default function ChartView({
     const up = tokens['candle-up'];
     const down = tokens['candle-down'];
     const themed = toKLineStyles(tokens);
-    // Candle bar first so merge can't be skipped by a partial tooltip-only path.
     chart.setStyles({
       candle: {
         bar: {
@@ -387,27 +480,36 @@ export default function ChartView({
         }
         try {
           const endTime = type === 'forward' && timestamp != null ? timestamp - 1 : undefined;
-          const bars = await streamRef.current.getBars(symbol, timeframe, {
-            endTime,
-          });
+          const bars = await streamRef.current.getBars(
+            symbolRef.current,
+            timeframeRef.current,
+            { endTime },
+          );
           callback(bars.map(candleToBar), {
             forward: bars.length >= KLINES_PAGE_LIMIT,
             backward: false,
           });
           historyReadyRef.current = true;
+          if (type !== 'forward') {
+            finishStreamTransition(loadTokenRef.current);
+          }
         } catch (e) {
           console.error('getBars failed', e);
           callback([], { forward: false, backward: false });
           historyReadyRef.current = true;
+          if (type !== 'forward') {
+            finishStreamTransition(loadTokenRef.current);
+          }
         }
       },
       subscribeBar: ({ callback }) => {
         pushBarRef.current = callback;
         offCandleRef.current?.();
-        offCandleRef.current = streamRef.current.onCandle((candle) => {
-          if (!historyReadyRef.current) return;
-          callback(candleToBar(candle));
-        });
+        offCandleRef.current = resubscribeLiveCandle(
+          streamRef.current,
+          callback,
+          historyReadyRef,
+        );
       },
       unsubscribeBar: () => {
         offCandleRef.current?.();
@@ -416,12 +518,14 @@ export default function ChartView({
       },
     });
 
-    chart.setSymbol({
-      ticker: symbol,
+    reloadChartStream(
+      chart,
+      symbolRef.current,
+      timeframeRef.current,
       pricePrecision,
       volumePrecision,
-    });
-    chart.setPeriod(toPeriod(timeframe));
+      indicators.some((cfg) => cfg.enabled),
+    );
 
     const onResize = () => chart.resize();
     window.addEventListener('resize', onResize);
@@ -438,7 +542,26 @@ export default function ChartView({
       dispose(chart);
       chartRef.current = null;
     };
-  }, [symbol, timeframe, pricePrecision, volumePrecision]);
+  }, []);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    if (!streamSwitchReadyRef.current) {
+      streamSwitchReadyRef.current = true;
+      return;
+    }
+
+    reloadChartStream(
+      chart,
+      symbol,
+      timeframe,
+      pricePrecision,
+      volumePrecision,
+      indicators.some((cfg) => cfg.enabled),
+    );
+  }, [chartId, symbol, timeframe, pricePrecision, volumePrecision, indicators]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -464,6 +587,7 @@ export default function ChartView({
           extendData: rustIndicatorInstanceKey(chartId, cfg.instanceId),
         });
       }
+      finishIndicatorTransition();
     };
     const offBootstrap = subscribeIndicatorBootstrap(chartId, refresh);
     const offPatch = subscribeIndicatorPatch(chartId, refresh);
@@ -546,6 +670,8 @@ export default function ChartView({
   }, [activeTool, symbol, timeframe, pricePrecision, volumePrecision]);
 
   return (
-    <div ref={containerRef} className="chart-root" style={{ width: '100%', height: '100%' }} />
+    <div className={`chart-stage chart-stage--${streamVisual}`}>
+      <div ref={containerRef} className="chart-root" />
+    </div>
   );
 }
